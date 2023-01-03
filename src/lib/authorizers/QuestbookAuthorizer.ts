@@ -2,15 +2,15 @@ import { ethers } from 'ethers';
 import { Pool } from 'pg';
 
 import {
+    createContractsWhitelistTable,
     createGaslessLoginTableQuery,
     createIndexForGasLessLoginTable,
     createIndexForScwWhitelistTable,
-    createScwWhitelistTable,
+    dropContractsWhitelistTable,
     dropGaslessLoginTableQuery,
-    dropScwWhitelistTable,
     NONCE_EXPIRATION
 } from '../../constants/database';
-import { DatabaseConfig, SignedMessage } from '../../types';
+import { SignedMessage } from '../../types';
 
 import { BaseAuthorizer } from './BaseAuthorizer';
 
@@ -21,16 +21,8 @@ export default class QuestbookAuthorizer implements BaseAuthorizer {
     loadingTableCreationWithIndex: Promise<void>;
     #gasTankID: string;
 
-    constructor(
-        databaseConfig: DatabaseConfig,
-        whiteList: string[],
-        gasTankID: string
-    ) {
-        const parsedDataBaseConfig = {
-            ...databaseConfig,
-            port: +databaseConfig.port
-        };
-        this.#pool = new Pool(parsedDataBaseConfig);
+    constructor(pool: Pool, whiteList: string[], gasTankID: string) {
+        this.#pool = pool;
         this.loadingTableCreationWithIndex = this.getDatabaseReadyWithIndex();
         this.#whiteList = whiteList;
 
@@ -44,7 +36,7 @@ export default class QuestbookAuthorizer implements BaseAuthorizer {
         if (this.#whiteList.includes(contractAddress)) return true;
 
         const results = await this.#query(
-            'SELECT * FROM scwWhitelist WHERE address = $1 AND gasTankID = $2 ;',
+            'SELECT * FROM contracts_whitelist WHERE address = $1 AND gasTankID = $2 ;',
             [contractAddress, this.#gasTankID]
         );
         if (results.rows.length === 0) {
@@ -55,10 +47,10 @@ export default class QuestbookAuthorizer implements BaseAuthorizer {
     async addToScwWhitelist(contractAddress: string): Promise<void> {
         if (await this.isInWhiteList(contractAddress)) return;
         try {
-            await this.#query('INSERT INTO scwWhitelist VALUES ($1, $2);', [
-                contractAddress,
-                this.#gasTankID
-            ]);
+            await this.#query(
+                'INSERT INTO contracts_whitelist VALUES ($1, $2);',
+                [contractAddress, this.#gasTankID]
+            );
         } catch (err) {
             throw new Error(err as string);
         }
@@ -146,13 +138,13 @@ export default class QuestbookAuthorizer implements BaseAuthorizer {
         // @todo: to be removed after testing
         try {
             await this.#pool.query(dropGaslessLoginTableQuery);
-            await this.#pool.query(dropScwWhitelistTable);
+            await this.#pool.query(dropContractsWhitelistTable);
         } catch {
             console.log('table does not exist');
         }
         try {
             await this.#pool.query(createGaslessLoginTableQuery);
-            await this.#pool.query(createScwWhitelistTable);
+            await this.#pool.query(createContractsWhitelistTable);
         } catch (err) {
             throw new Error(err as string);
         }

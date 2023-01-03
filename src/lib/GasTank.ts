@@ -1,8 +1,9 @@
+import { Pool } from 'pg';
+
 import { SupportedChainId } from '../constants/chains';
 import {
     BuildExecTransactionType,
     BuildTransactionParams,
-    DatabaseConfig,
     deployProxyWalletParams,
     GasTankProps,
     SendGaslessTransactionParams,
@@ -21,7 +22,7 @@ export class GasTank {
     #relayer: BiconomyRelayer; // We can simply swap out biconomy by using a different relayer
     authorizer: QuestbookAuthorizer; // We can change the authorizer by simply swapping out the QuestbookAuthorizer
 
-    constructor(gasTank: GasTankProps, databaseConfig: DatabaseConfig) {
+    constructor(gasTank: GasTankProps, pool: Pool) {
         this.gasTankName = gasTank.name;
         this.chainId = gasTank.chainId;
         this.#relayer = new BiconomyRelayer({
@@ -31,7 +32,7 @@ export class GasTank {
             providerURL: gasTank.providerURL
         });
         this.authorizer = new QuestbookAuthorizer(
-            databaseConfig,
+            pool,
             gasTank.whiteList,
             this.gasTankName
         );
