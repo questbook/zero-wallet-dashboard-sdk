@@ -1,0 +1,25 @@
+---
+ databaseConfig:
+      user : "---"
+      host : "---"
+      database: "---"
+      password  : "---"
+      port: 0
+      
+ gasTanks:
+   - name: "gasTank1"
+     apiKey: "---"
+     chainId: 0
+     providerURL: "---"
+     whiteList:
+        - "address1"
+        - "address2"
+        - "address3"
+    - name: "gasTank2"
+     apiKey: "---"
+     chainId: 1
+     providerURL: "---"
+     whiteList:  
+        - "address1"
+        - "address2"
+        - "address3"
