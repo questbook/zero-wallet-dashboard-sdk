@@ -19,7 +19,6 @@ export function isGasTankProps(obj: any): obj is GasTankProps {
     return true;
 }
 
-
 function isAuthToken(obj: any): obj is string {
     if (typeof obj !== 'string') {
         throw new Error('authToken in yml file is not a string');
