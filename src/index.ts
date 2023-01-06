@@ -2,4 +2,5 @@ import { configEnv } from './utils/global';
 
 configEnv();
 
-export * from './lib/ZeroWallet';
+export * from './lib/Project';
+export * from './lib/ProjectsManager';
