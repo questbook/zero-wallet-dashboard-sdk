@@ -1,5 +1,5 @@
 {
-  "name": "@hasankhadra/zero-wallet-server",
+  "name": "@mohammadshahin/zero-wallet-dashboard-sdk",
   "author": "Questbook",
   "version": "1.0.3",
   "description": "none",
@@ -8,7 +8,7 @@
   "module": "build/module/index.js",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/questbook/zero-wallet-server-sdk.git"
+    "url": "git+https://github.com/questbook/zero-wallet-dashboard-sdk.git"
   },
   "license": "MIT",
   "keywords": [],
@@ -108,7 +108,7 @@
     "example": "example"
   },
   "bugs": {
-    "url": "https://github.com/questbook/zero-wallet-server-sdk/issues"
+    "url": "https://github.com/questbook/zero-wallet-dashboard-sdk/issues"
   },
-  "homepage": "https://github.com/questbook/zero-wallet-server-sdk#readme"
+  "homepage": "https://github.com/questbook/zero-wallet-dashboard-sdk#readme"
 }
