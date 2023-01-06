@@ -17,6 +17,8 @@ export class GasTank {
     // public fields
     gasTankName: string;
     chainId: SupportedChainId;
+    createdAt: string;
+    fundingKey: number;
 
     // private fields
     #relayer: BiconomyRelayer; // We can simply swap out biconomy by using a different relayer
@@ -24,18 +26,16 @@ export class GasTank {
 
     constructor(gasTank: GasTankProps, pool: Pool) {
         this.gasTankName = gasTank.name;
+        this.createdAt = gasTank.createdAt;
         this.chainId = gasTank.chainId;
+        this.fundingKey = gasTank.fundingKey;
         this.#relayer = new BiconomyRelayer({
             name: gasTank.name,
             chainId: gasTank.chainId,
             apiKey: gasTank.apiKey,
             providerURL: gasTank.providerURL
         });
-        this.authorizer = new QuestbookAuthorizer(
-            pool,
-            gasTank.whiteList,
-            this.gasTankName
-        );
+        this.authorizer = new QuestbookAuthorizer(pool, this.gasTankName);
     }
     async addAuthorizedUser(address: string) {
         try {
@@ -177,5 +177,12 @@ export class GasTank {
 
     public toString(): string {
         return `GasTank: ${this.gasTankName}, chainId: ${this.chainId}`;
+    }
+
+    public getInfo(): { [key: string]: string } {
+        return {
+            name: this.gasTankName,
+            chainId: this.chainId.toString()
+        };
     }
 }

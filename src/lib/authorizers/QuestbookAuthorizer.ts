@@ -1,15 +1,7 @@
 import { ethers } from 'ethers';
 import { Pool } from 'pg';
 
-import {
-    createContractsWhitelistTable,
-    createGaslessLoginTableQuery,
-    createIndexForGasLessLoginTable,
-    createIndexForScwWhitelistTable,
-    dropContractsWhitelistTable,
-    dropGaslessLoginTableQuery,
-    NONCE_EXPIRATION
-} from '../../constants/database';
+import { NONCE_EXPIRATION } from '../../constants/database';
 import { SignedMessage } from '../../types';
 
 import { BaseAuthorizer } from './BaseAuthorizer';
@@ -17,27 +9,22 @@ import { BaseAuthorizer } from './BaseAuthorizer';
 export default class QuestbookAuthorizer implements BaseAuthorizer {
     name = 'Questbook Auhorizer';
     #pool: Pool;
-    #whiteList: Array<string>;
-    loadingTableCreationWithIndex: Promise<void>;
-    #gasTankID: string;
+    // loadingTableCreationWithIndex: Promise<void>;
+    #gasTankApiKey: string;
 
-    constructor(pool: Pool, whiteList: string[], gasTankID: string) {
+    constructor(pool: Pool, gasTankApiKey: string) {
         this.#pool = pool;
-        this.loadingTableCreationWithIndex = this.getDatabaseReadyWithIndex();
-        this.#whiteList = whiteList;
 
-        this.#gasTankID = gasTankID;
+        this.#gasTankApiKey = gasTankApiKey;
     }
     async endConnection() {
         await this.#pool.end();
     }
 
     async isInWhiteList(contractAddress: string): Promise<boolean> {
-        if (this.#whiteList.includes(contractAddress)) return true;
-
         const results = await this.#query(
-            'SELECT * FROM contracts_whitelist WHERE address = $1 AND gasTankID = $2 ;',
-            [contractAddress, this.#gasTankID]
+            'SELECT * FROM contracts_whitelist WHERE address = $1 AND gas_tank_id = $2 ;',
+            [contractAddress, this.#gasTankApiKey]
         );
         if (results.rows.length === 0) {
             return false;
@@ -49,7 +36,7 @@ export default class QuestbookAuthorizer implements BaseAuthorizer {
         try {
             await this.#query(
                 'INSERT INTO contracts_whitelist VALUES ($1, $2);',
-                [contractAddress, this.#gasTankID]
+                [contractAddress, this.#gasTankApiKey]
             );
         } catch (err) {
             throw new Error(err as string);
@@ -71,7 +58,7 @@ export default class QuestbookAuthorizer implements BaseAuthorizer {
                     address,
                     newNonce,
                     NONCE_EXPIRATION + Math.trunc(new Date().getTime() / 1000),
-                    this.#gasTankID
+                    this.#gasTankApiKey
                 ]
             );
         } catch (err) {
@@ -86,7 +73,7 @@ export default class QuestbookAuthorizer implements BaseAuthorizer {
         try {
             await this.#query(
                 'DELETE FROM gasless_login WHERE address = $1 AND gasTankID = $2 ;',
-                [address, this.#gasTankID]
+                [address, this.#gasTankApiKey]
             );
         } catch (err) {
             throw new Error(err as string);
@@ -102,7 +89,7 @@ export default class QuestbookAuthorizer implements BaseAuthorizer {
 
         await this.#query(
             'UPDATE gasless_login SET nonce = $1 WHERE address = $2 AND gasTankID = $3;',
-            [newNonce, address, this.#gasTankID]
+            [newNonce, address, this.#gasTankApiKey]
         );
 
         return newNonce;
@@ -134,37 +121,10 @@ export default class QuestbookAuthorizer implements BaseAuthorizer {
         return await this.#retrieveValidRecord(address, nonce);
     }
 
-    async getDatabaseReadyWithIndex() {
-        // @todo: to be removed after testing
-        try {
-            await this.#pool.query(dropGaslessLoginTableQuery);
-            await this.#pool.query(dropContractsWhitelistTable);
-        } catch {
-            console.log('table does not exist');
-        }
-        try {
-            await this.#pool.query(createGaslessLoginTableQuery);
-            await this.#pool.query(createContractsWhitelistTable);
-        } catch (err) {
-            throw new Error(err as string);
-        }
-        try {
-            await this.#pool.query(createIndexForGasLessLoginTable);
-        } catch (err) {
-            console.log('error creating index in gasless_login table');
-        }
-        try {
-            await this.#pool.query(createIndexForScwWhitelistTable);
-        } catch (err) {
-            console.log('error creating index in whitelist table');
-        }
-        return;
-    }
-
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async #query(query: string, values?: Array<any>): Promise<any> {
         try {
-            await this.loadingTableCreationWithIndex;
+            // await this.loadingTableCreationWithIndex;
             const res = await this.#pool.query(query, values);
             return res;
         } catch (err) {
@@ -174,8 +134,8 @@ export default class QuestbookAuthorizer implements BaseAuthorizer {
 
     async #retrieveValidRecord(address: string, nonce: string) {
         const results = await this.#query(
-            'SELECT * FROM gasless_login WHERE address = $1 AND nonce = $2 ANd gasTankID = $3;',
-            [address, nonce, this.#gasTankID]
+            'SELECT * FROM gasless_login WHERE address = $1 AND nonce = $2 AND gasTankID = $3;',
+            [address, nonce, this.#gasTankApiKey]
         );
 
         if (results.rows.length === 0) {
@@ -193,7 +153,7 @@ export default class QuestbookAuthorizer implements BaseAuthorizer {
         try {
             const results = await this.#query(
                 'SELECT * FROM gasless_login WHERE address = $1 AND gasTankID= $2 ;',
-                [address, this.#gasTankID]
+                [address, this.#gasTankApiKey]
             );
             return results.rows.length > 0;
         } catch (err) {
@@ -204,7 +164,7 @@ export default class QuestbookAuthorizer implements BaseAuthorizer {
     async getNonce(address: string): Promise<boolean | string> {
         const results = await this.#query(
             'SELECT nonce, expiration FROM gasless_login WHERE address = $1 AND gasTankID = $2 ORDER BY expiration DESC',
-            [address, this.#gasTankID]
+            [address, this.#gasTankApiKey]
         );
 
         if (results.rows.length === 0) {
