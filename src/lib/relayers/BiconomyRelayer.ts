@@ -6,6 +6,8 @@ import {
     BiconomyRelayerProps,
     BiconomySendGaslessTransactionParams,
     BiconomyWalletClientType,
+    GasTankCreationResponse,
+    GasTankProps,
     InitBiconomyRelayerProps,
     SendGaslessTransactionType,
     ZeroWalletProviderType
@@ -14,6 +16,7 @@ import { delay } from '../../utils/global';
 import { getTransactionReceipt } from '../../utils/provider';
 
 import { BaseRelayer } from './BaseRelayer';
+
 export class BiconomyRelayer implements BaseRelayer {
     name = 'Biconomy';
     chainId: SupportedChainId;
@@ -27,7 +30,7 @@ export class BiconomyRelayer implements BaseRelayer {
         const provider = new ethers.providers.JsonRpcProvider(
             relayerProps.providerURL
         ) as ZeroWalletProviderType;
-
+        console.log('apiKey', relayerProps.apiKey);
         this.chainId = +relayerProps.chainId;
         this.#provider = provider;
         this.#apiKey = relayerProps.apiKey;
@@ -35,6 +38,41 @@ export class BiconomyRelayer implements BaseRelayer {
         this.#biconomyLoading = this.initRelayer({
             provider: this.#provider
         } as InitBiconomyRelayerProps);
+    }
+
+    static async createGasTank(
+        gasTank: Omit<GasTankProps, 'apiKey'>,
+        authToken: string
+    ): Promise<GasTankCreationResponse> {
+        const url =
+            'https://api.biconomy.io/api/v1/dapp/public-api/create-dapp';
+
+        const formData = new URLSearchParams({
+            dappName: gasTank.name,
+            networkId: gasTank.chainId.toString(),
+            enableBiconomyWallet: 'true'
+        });
+
+        const requestOptions = {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                authToken: authToken
+            },
+            body: formData
+        };
+
+        const res = await fetch(url, requestOptions);
+        const resJson = (await res.json()) as {
+            data: { apiKey: string; fundingKey: number };
+        };
+
+        console.log(resJson);
+
+        return {
+            apiKey: resJson.data.apiKey,
+            fundingKey: resJson.data.fundingKey
+        };
     }
 
     async #waitForBiconomyWalletClient() {
