@@ -19,16 +19,17 @@ export type ZeroWalletProvidersType = {
 export type GasTankProps = {
     name: string;
     apiKey: string;
+    createdAt: string;
     chainId: SupportedChainId;
     providerURL: string;
-    whiteList: Array<string>;
+    fundingKey: number;
 };
 
 export type GasTanksType = Array<GasTankProps>;
 
 export type fileDoc = {
     databaseConfig: DatabaseConfig;
-    gasTanks: GasTanksType;
+    authToken: string;
 };
 
 export type SendGaslessTransactionParams = BiconomySendGaslessTransactionParams; // @TODO-update
