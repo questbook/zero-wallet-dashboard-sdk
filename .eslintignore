@@ -1,2 +1,5 @@
 babel.config.js
 jest.config.ts
+node_modules
+.eslintrc.json
+jest.config.js
