@@ -127,3 +127,8 @@ export type InitBiconomyRelayerProps = {
 };
 
 export type InitBiconomyRelayerType = BiconomyWalletClientType;
+
+export type GasTankCreationResponse = {
+    apiKey: string;
+    fundingKey: number;
+};
