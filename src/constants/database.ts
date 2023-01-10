@@ -76,11 +76,16 @@ export const createIndexForGasLessLoginTable =
 export const addProjectQuery =
     'INSERT INTO projects (name, created_at, owner_scw, allowed_origins) VALUES ($1, $2, $3, $4) RETURNING project_id';
 export const addGasTankQuery =
-    'INSERT INTO gas_tanks (api_key, project_id, created_at, name, chain_id, provider_url, funding_key) VALUES ($1, $2, $3, $4, $5, $6, $7)';
+    'INSERT INTO gas_tanks (api_key, project_id, created_at, name, chain_id, provider_url, funding_key) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING gas_tank_id';
+export const addMultiGasTankWhitelistQuery =
+    'INSERT INTO contracts_whitelist (address, gas_tank_id) SELECT * FROM UNNEST ($1::VARCHAR[], $2::BIGINT[])';
 
 // read
 export const getGasTanksByProjectIdQuery =
-    'SELECT name, api_key as apiKey, chain_id as chainId, provider_url as providerURL, created_at as createdAt, funding_key as fundingKey FROM gas_tanks WHERE project_id = $1';
+    'SELECT name, api_key as "apiKey", chain_id as "chainId", provider_url as "providerURL", created_at as "createdAt", funding_key as "fundingKey" FROM gas_tanks WHERE project_id = $1';
+export const getGasTankByChainIdQuery =
+    'SELECT name, api_key as "apiKey", chain_id as "chainId", provider_url as "providerURL", created_at as "createdAt", funding_key as "fundingKey" FROM gas_tanks WHERE project_id = $1 AND chain_id = $2';
 
 // delete
-export const deleteProjectQuery = 'DELETE FROM projects WHERE project_id = $1';
+export const deleteProjectQuery =
+    'DELETE FROM projects CASCADE WHERE project_id = $1';
