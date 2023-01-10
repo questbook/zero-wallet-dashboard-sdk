@@ -19,6 +19,7 @@ export class GasTank {
     chainId: SupportedChainId;
     createdAt: string;
     fundingKey: number;
+    readyPromise: Promise<void>;
 
     // private fields
     #relayer: BiconomyRelayer; // We can simply swap out biconomy by using a different relayer
@@ -36,6 +37,7 @@ export class GasTank {
             providerURL: gasTank.providerURL
         });
         this.authorizer = new QuestbookAuthorizer(pool, this.gasTankName);
+        this.readyPromise = this.#relayer.biconomyLoading;
     }
     async addAuthorizedUser(address: string) {
         try {

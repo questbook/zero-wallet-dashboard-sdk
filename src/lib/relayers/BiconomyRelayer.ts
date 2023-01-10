@@ -24,24 +24,23 @@ export class BiconomyRelayer implements BaseRelayer {
     #apiKey: string;
     #biconomy = {} as any; // eslint-disable-line @typescript-eslint/no-explicit-any
     #biconomyWalletClient?: BiconomyWalletClientType;
-    #biconomyLoading: Promise<void>;
+    biconomyLoading: Promise<void>;
 
     constructor(relayerProps: BiconomyRelayerProps) {
         const provider = new ethers.providers.JsonRpcProvider(
             relayerProps.providerURL
         ) as ZeroWalletProviderType;
-        console.log('apiKey', relayerProps.apiKey);
         this.chainId = +relayerProps.chainId;
         this.#provider = provider;
         this.#apiKey = relayerProps.apiKey;
 
-        this.#biconomyLoading = this.initRelayer({
+        this.biconomyLoading = this.initRelayer({
             provider: this.#provider
         } as InitBiconomyRelayerProps);
     }
 
     static async createGasTank(
-        gasTank: Omit<GasTankProps, 'apiKey'>,
+        gasTank: Omit<GasTankProps, 'apiKey' | 'createdAt'>,
         authToken: string
     ): Promise<GasTankCreationResponse> {
         const url =
@@ -67,8 +66,6 @@ export class BiconomyRelayer implements BaseRelayer {
             data: { apiKey: string; fundingKey: number };
         };
 
-        console.log(resJson);
-
         return {
             apiKey: resJson.data.apiKey,
             fundingKey: resJson.data.fundingKey
@@ -76,10 +73,11 @@ export class BiconomyRelayer implements BaseRelayer {
     }
 
     async #waitForBiconomyWalletClient() {
-        await this.#biconomyLoading;
+        await this.biconomyLoading;
     }
 
     async initRelayer(params: InitBiconomyRelayerProps): Promise<void> {
+        console.log('apiKey', this.#apiKey);
         this.#biconomy = new Biconomy(params.provider, {
             apiKey: this.#apiKey
         });
