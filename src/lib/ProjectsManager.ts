@@ -50,7 +50,7 @@ export default class ProjectsManager {
         this.readyPromise = this.getDatabaseReadyWithIndex();
     }
 
-    async clearDatabase() {
+    async #clearDatabase() {
         try {
             await this.#pool.query(dropGaslessLoginTableQuery);
             await this.#pool.query(dropContractsWhitelistTable);
@@ -61,7 +61,7 @@ export default class ProjectsManager {
         }
     }
 
-    async createTables() {
+    async #createTables() {
         try {
             await this.#pool.query(createProjectsTableQuery);
             await this.#pool.query(createGasTanksTableQuery);
@@ -72,7 +72,7 @@ export default class ProjectsManager {
         }
     }
 
-    async createIndices() {
+    async #createIndices() {
         try {
             await this.#pool.query(createIndexForGasTanksTable);
         } catch (err) {
@@ -95,11 +95,11 @@ export default class ProjectsManager {
     }
 
     async getDatabaseReadyWithIndex() {
-        // @todo: the next line to be removed after testing
-        // await this.clearDatabase();
+        // @todo: the next line should be uncommented only in testing
+        await this.#clearDatabase();
 
-        await this.createTables();
-        await this.createIndices();
+        await this.#createTables();
+        await this.#createIndices();
     }
 
     async addProject(
@@ -118,10 +118,8 @@ export default class ProjectsManager {
                 allowedOrigins
             ]);
         } catch (err) {
-            console.log(err);
             throw new Error(err as string);
         }
-        console.log(apiKey);
         return new Project(
             apiKey.rows[0].project_id,
             this.#pool,
@@ -139,7 +137,7 @@ export default class ProjectsManager {
         }
     }
 
-    async getAllProjects() {
+    async getAllProjectsRaw() {
         await this.readyPromise;
         const projects = await this.#pool.query('SELECT * FROM projects;');
         return projects.rows;

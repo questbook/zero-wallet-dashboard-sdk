@@ -7,23 +7,27 @@ import { GasTank } from '../lib/GasTank';
 import Project from '../lib/Project';
 import ProjectsManager from '../lib/ProjectsManager';
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const projectParams = {
-    name: 'testProject',
+const mockProject1 = {
+    name: 'testProject1',
     ownerScw: '0x0000000000000000000000000000000000000000',
     allowedOrigins: ['http://localhost:3000']
 };
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const projectApiKey = '3165ad4b-1c96-4bd9-8a11-59c3350e9a0f';
+const mockProject2 = {
+    name: 'testProject2',
+    ownerScw: '0x0000000000000000000000000000000000000001',
+    allowedOrigins: ['http://localhost:3000']
+};
 
 const gasTankProps = {
-    name: 'testGasTank',
+    name: 'testGasTank1',
     chainId: 5,
     providerURL:
-        'https://eth-goerli.g.alchemy.com/v2/c7FL3Wd0zxt_DtjeN1wqMWtCFVUTV_sP',
-    whiteList: ['0x0000000000000000000000000000000000000000']
+        'https://eth-goerli.g.alchemy.com/v2/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+    fundingKey: 0
 };
+
+const gasTankWhiteList = ['0x123', '0x456'];
 
 const constants: {
     wallet: ethers.Wallet;
@@ -59,14 +63,58 @@ afterAll(async () => {
 });
 
 describe('ProjectManager', () => {
-    test('project manager created successfully', async () => {
+    test('project manager created successfully with zero projects', async () => {
         expect(constants.projectsManager).toBeInstanceOf(ProjectsManager);
+        const projects = await constants.projectsManager.getAllProjectsRaw();
+        expect(projects.length).toBe(0);
     });
 
-    test('project manager has projects', async () => {
-        const projects = await constants.projectsManager.getAllProjects();
-        console.log(projects);
-        console.log(typeof projects[0].created_at);
-        expect(projects).toBeInstanceOf(Array);
+    test('project manager adds then removes a project', async () => {
+        const { apiKey } = await constants.projectsManager.addProject(
+            mockProject1.name,
+            mockProject1.ownerScw,
+            mockProject1.allowedOrigins
+        );
+        const projects = await constants.projectsManager.getAllProjectsRaw();
+        const project = await constants.projectsManager.getProject(apiKey);
+        await project.readyPromise;
+
+        expect(projects.length).toBe(1);
+        expect(project).toBeInstanceOf(Project);
+        expect(project).toEqual(
+            expect.objectContaining({
+                name: mockProject1.name,
+                owner: mockProject1.ownerScw,
+                allowedOrigins: mockProject1.allowedOrigins,
+                apiKey
+            })
+        );
+
+        await constants.projectsManager.removeProject(apiKey);
+        const projectsEmpty =
+            await constants.projectsManager.getAllProjectsRaw();
+        expect(projectsEmpty.length).toBe(0);
+    });
+
+    test('project has a gas tank', async () => {
+        const project = await constants.projectsManager.addProject(
+            mockProject2.name,
+            mockProject2.ownerScw,
+            mockProject2.allowedOrigins
+        );
+        await project.readyPromise;
+
+        await project.addGasTank(gasTankProps, gasTankWhiteList);
+        const gasTank = await project.loadAndGetGasTankByChainId(
+            gasTankProps.chainId
+        );
+
+        expect(gasTank).toBeInstanceOf(GasTank);
+
+        // Biconomy throws an error if the gas tank is empty.
+        try {
+            await gasTank.readyPromise;
+            // eslint-disable-next-line no-empty
+        } catch {}
     });
 });
