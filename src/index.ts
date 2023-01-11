@@ -1,7 +1,8 @@
+import Project from './lib/Project';
+import ProjectsManager from './lib/ProjectsManager';
 import { configEnv } from './utils/global';
 
 configEnv();
 
-export * from './lib/Project';
-export * from './lib/ProjectsManager';
-export * from './types'
+export { Project, ProjectsManager };
+export * from './types';
