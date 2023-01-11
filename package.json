@@ -1,7 +1,7 @@
 {
   "name": "@mohammadshahin/zero-wallet-dashboard-sdk",
   "author": "Questbook",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "description": "none",
   "main": "build/main/index.js",
   "typings": "build/main/index.d.ts",
