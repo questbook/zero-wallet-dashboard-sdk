@@ -77,7 +77,6 @@ export class BiconomyRelayer implements BaseRelayer {
     }
 
     async initRelayer(params: InitBiconomyRelayerProps): Promise<void> {
-        console.log('apiKey', this.#apiKey);
         this.#biconomy = new Biconomy(params.provider, {
             apiKey: this.#apiKey
         });

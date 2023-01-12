@@ -1,7 +1,10 @@
 import { ethers } from 'ethers';
 import { Pool } from 'pg';
 
-import { NONCE_EXPIRATION } from '../../constants/database';
+import {
+    addContractWhitelistQuery,
+    NONCE_EXPIRATION
+} from '../../constants/database';
 import { SignedMessage } from '../../types';
 
 import { BaseAuthorizer } from './BaseAuthorizer';
@@ -10,13 +13,13 @@ export default class QuestbookAuthorizer implements BaseAuthorizer {
     name = 'Questbook Auhorizer';
     #pool: Pool;
     // loadingTableCreationWithIndex: Promise<void>;
-    #gasTankApiKey: string;
+    #gasTankId: string;
 
-    constructor(pool: Pool, gasTankApiKey: string) {
+    constructor(gasTankId: string, pool: Pool) {
         this.#pool = pool;
-
-        this.#gasTankApiKey = gasTankApiKey;
+        this.#gasTankId = gasTankId;
     }
+
     async endConnection() {
         await this.#pool.end();
     }
@@ -24,7 +27,7 @@ export default class QuestbookAuthorizer implements BaseAuthorizer {
     async isInWhiteList(contractAddress: string): Promise<boolean> {
         const results = await this.#query(
             'SELECT * FROM contracts_whitelist WHERE address = $1 AND gas_tank_id = $2 ;',
-            [contractAddress, this.#gasTankApiKey]
+            [contractAddress, this.#gasTankId]
         );
         if (results.rows.length === 0) {
             return false;
@@ -34,10 +37,10 @@ export default class QuestbookAuthorizer implements BaseAuthorizer {
     async addToScwWhitelist(contractAddress: string): Promise<void> {
         if (await this.isInWhiteList(contractAddress)) return;
         try {
-            await this.#query(
-                'INSERT INTO contracts_whitelist VALUES ($1, $2);',
-                [contractAddress, this.#gasTankApiKey]
-            );
+            await this.#query(addContractWhitelistQuery, [
+                contractAddress,
+                this.#gasTankId
+            ]);
         } catch (err) {
             throw new Error(err as string);
         }
@@ -58,7 +61,7 @@ export default class QuestbookAuthorizer implements BaseAuthorizer {
                     address,
                     newNonce,
                     NONCE_EXPIRATION + Math.trunc(new Date().getTime() / 1000),
-                    this.#gasTankApiKey
+                    this.#gasTankId
                 ]
             );
         } catch (err) {
@@ -72,8 +75,8 @@ export default class QuestbookAuthorizer implements BaseAuthorizer {
         }
         try {
             await this.#query(
-                'DELETE FROM gasless_login WHERE address = $1 AND gasTankID = $2 ;',
-                [address, this.#gasTankApiKey]
+                'DELETE FROM gasless_login WHERE address = $1 AND gas_tank_id = $2 ;',
+                [address, this.#gasTankId]
             );
         } catch (err) {
             throw new Error(err as string);
@@ -88,8 +91,8 @@ export default class QuestbookAuthorizer implements BaseAuthorizer {
         const newNonce = this.#createNonce(100);
 
         await this.#query(
-            'UPDATE gasless_login SET nonce = $1 WHERE address = $2 AND gasTankID = $3;',
-            [newNonce, address, this.#gasTankApiKey]
+            'UPDATE gasless_login SET nonce = $1 WHERE address = $2 AND gas_tank_id = $3;',
+            [newNonce, address, this.#gasTankId]
         );
 
         return newNonce;
@@ -134,8 +137,8 @@ export default class QuestbookAuthorizer implements BaseAuthorizer {
 
     async #retrieveValidRecord(address: string, nonce: string) {
         const results = await this.#query(
-            'SELECT * FROM gasless_login WHERE address = $1 AND nonce = $2 AND gasTankID = $3;',
-            [address, nonce, this.#gasTankApiKey]
+            'SELECT * FROM gasless_login WHERE address = $1 AND nonce = $2 AND gas_tank_id = $3;',
+            [address, nonce, this.#gasTankId]
         );
 
         if (results.rows.length === 0) {
@@ -152,8 +155,8 @@ export default class QuestbookAuthorizer implements BaseAuthorizer {
     async doesAddressExist(address: string): Promise<boolean> {
         try {
             const results = await this.#query(
-                'SELECT * FROM gasless_login WHERE address = $1 AND gasTankID= $2 ;',
-                [address, this.#gasTankApiKey]
+                'SELECT * FROM gasless_login WHERE address = $1 AND gas_tank_id= $2 ;',
+                [address, this.#gasTankId]
             );
             return results.rows.length > 0;
         } catch (err) {
@@ -163,8 +166,8 @@ export default class QuestbookAuthorizer implements BaseAuthorizer {
 
     async getNonce(address: string): Promise<boolean | string> {
         const results = await this.#query(
-            'SELECT nonce, expiration FROM gasless_login WHERE address = $1 AND gasTankID = $2 ORDER BY expiration DESC',
-            [address, this.#gasTankApiKey]
+            'SELECT nonce, expiration FROM gasless_login WHERE address = $1 AND gas_tank_id = $2 ORDER BY expiration DESC',
+            [address, this.#gasTankId]
         );
 
         if (results.rows.length === 0) {

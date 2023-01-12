@@ -36,7 +36,7 @@ export class GasTank {
             apiKey: gasTank.apiKey,
             providerURL: gasTank.providerURL
         });
-        this.authorizer = new QuestbookAuthorizer(pool, this.gasTankName);
+        this.authorizer = new QuestbookAuthorizer(gasTank.gasTankId, pool);
         this.readyPromise = this.#relayer.biconomyLoading;
     }
     async addAuthorizedUser(address: string) {
