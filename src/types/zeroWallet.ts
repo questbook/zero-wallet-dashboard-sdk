@@ -62,3 +62,12 @@ export type SignedMessage = {
     s: string;
     v: number;
 };
+
+export type ProjectType = {
+    project_id: string;
+    project_api_key: string;
+    name: string;
+    created_at: string;
+    owner_scw: string;
+    allowed_origins: string[];
+};
