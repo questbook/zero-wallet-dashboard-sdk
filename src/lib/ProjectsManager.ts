@@ -117,28 +117,26 @@ export default class ProjectsManager {
     ) {
         await this.readyPromise;
         const createAt = new Date();
-        let apiKey;
+        let projectId;
         try {
-            apiKey = await this.#pool.query(addProjectQuery, [
-                name,
-                createAt,
-                ownerScw,
-                allowedOrigins
-            ]);
+            projectId = await this.#pool.query<{ project_id: string }>(
+                addProjectQuery,
+                [name, createAt, ownerScw, allowedOrigins]
+            );
         } catch (err) {
             throw new Error(err as string);
         }
         return new Project(
-            apiKey.rows[0].project_id,
+            { projectId: projectId.rows[0].project_id },
             this.#pool,
             this.#authToken
         );
     }
 
-    async removeProject(apiKey: string) {
+    async removeProject(projectId: string) {
         await this.readyPromise;
         try {
-            await this.#pool.query(deleteProjectQuery, [apiKey]);
+            await this.#pool.query(deleteProjectQuery, [projectId]);
         } catch (err) {
             console.log(err);
             throw new Error(err as string);
@@ -151,8 +149,29 @@ export default class ProjectsManager {
         return projects.rows;
     }
 
-    async getProject(apiKey: string): Promise<Project> {
+    async getProjectByApiKey(
+        projectApiKey: string,
+        loadAllOnInit?: boolean
+    ): Promise<Project> {
         await this.readyPromise;
-        return new Project(apiKey, this.#pool, this.#authToken);
+        return new Project(
+            { projectApiKey },
+            this.#pool,
+            this.#authToken,
+            loadAllOnInit
+        );
+    }
+
+    async getProjectById(
+        projectId: string,
+        loadAllOnInit?: boolean
+    ): Promise<Project> {
+        await this.readyPromise;
+        return new Project(
+            { projectId },
+            this.#pool,
+            this.#authToken,
+            loadAllOnInit
+        );
     }
 }

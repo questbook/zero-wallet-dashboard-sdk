@@ -7,14 +7,15 @@ import {
     getGasTankByNameQuery,
     getGasTanksByProjectIdQuery
 } from '../constants/database';
-import { GasTankProps, GasTanksType } from '../types';
+import { GasTankProps, GasTanksType, ProjectType } from '../types';
 
 import { GasTank } from './GasTank';
 import { BiconomyRelayer } from './relayers/BiconomyRelayer';
 
 export default class Project {
     #gasTanks = {} as { [key: string]: GasTank };
-    #projectApiKey: string;
+    #projectApiKey?: string;
+    projectId;
     #pool: Pool;
     #authToken: string;
     readyPromise: Promise<void>;
@@ -25,11 +26,20 @@ export default class Project {
     #loadAllOnInit?: boolean;
 
     constructor(
-        projectApiKey: string,
+        whichProject: {
+            projectId?: string;
+            projectApiKey?: string;
+        },
         pool: Pool,
         authToken: string,
         loadAllOnInit?: boolean
     ) {
+        const { projectId, projectApiKey } = whichProject;
+        if ((!projectApiKey && !projectId) || (projectApiKey && projectId)) {
+            throw new Error('either project id or project api key is required');
+        }
+        console.log(whichProject);
+        this.projectId = projectId;
         this.#projectApiKey = projectApiKey;
         this.#authToken = authToken;
         this.#pool = pool;
@@ -37,7 +47,7 @@ export default class Project {
 
         this.readyPromise = loadAllOnInit
             ? this.initWithGasTanks()
-            : this.initProjectDetails();
+            : this.#initProjectDetails();
     }
 
     async addGasTank(
@@ -57,7 +67,7 @@ export default class Project {
         const gasTankId = (
             await this.#pool.query(addGasTankQuery, [
                 apiKey,
-                this.#projectApiKey,
+                this.projectId,
                 now,
                 gasTank.name,
                 gasTank.chainId,
@@ -85,18 +95,35 @@ export default class Project {
         }
     }
 
-    async initProjectDetails(): Promise<void> {
+    async #getProjectDetailsRow(): Promise<ProjectType> {
+        if (this.#projectApiKey) {
+            const res = await this.#pool.query(
+                'SELECT * FROM projects WHERE project_api_key = $1',
+                [this.#projectApiKey]
+            );
+            if (res.rows.length === 0) {
+                throw new Error('project not found');
+            }
+            return res.rows[0];
+        }
         const res = await this.#pool.query(
             'SELECT * FROM projects WHERE project_id = $1',
-            [this.#projectApiKey]
+            [this.projectId]
         );
         if (res.rows.length === 0) {
             throw new Error('project not found');
         }
-        this.owner = res.rows[0].owner_scw;
-        this.createdAt = res.rows[0].created_at;
-        this.allowedOrigins = res.rows[0].allowed_origins;
-        this.name = res.rows[0].name;
+        return res.rows[0];
+    }
+
+    async #initProjectDetails(): Promise<void> {
+        const projectRow = await this.#getProjectDetailsRow();
+        this.owner = projectRow.owner_scw;
+        this.createdAt = new Date(projectRow.created_at);
+        this.allowedOrigins = projectRow.allowed_origins;
+        this.name = projectRow.name;
+        this.#projectApiKey = projectRow.project_api_key;
+        this.projectId = projectRow.project_id;
     }
 
     async initGasTanks(): Promise<void> {
@@ -118,14 +145,14 @@ export default class Project {
     }
 
     async initWithGasTanks(): Promise<void> {
-        await Promise.all([this.initProjectDetails(), this.initGasTanks()]);
+        await Promise.all([this.#initProjectDetails(), this.initGasTanks()]);
     }
 
     async #obtainGasTanksFromDatabase(): Promise<GasTanksType> {
         try {
             const res = await this.#pool.query<GasTankProps>(
                 getGasTanksByProjectIdQuery,
-                [this.#projectApiKey]
+                [this.projectId]
             );
             return res.rows.map((gasTank: GasTankProps) => ({
                 ...gasTank,
@@ -139,7 +166,7 @@ export default class Project {
     async loadAndGetGasTankByChainId(chainId: number): Promise<GasTank> {
         const { rows } = await this.#pool.query<GasTankProps>(
             getGasTankByChainIdQuery,
-            [this.#projectApiKey, chainId]
+            [this.projectId, chainId]
         );
         if (rows.length === 0) {
             throw new Error('gas tank not found');
@@ -155,7 +182,7 @@ export default class Project {
     async loadAndGetGasTankByName(name: string): Promise<GasTank> {
         const { rows } = await this.#pool.query<GasTankProps>(
             getGasTankByNameQuery,
-            [this.#projectApiKey, name]
+            [this.projectId, name]
         );
         if (rows.length === 0) {
             throw new Error('gas tank not found');
@@ -172,7 +199,7 @@ export default class Project {
         return this.#gasTanks[name];
     }
 
-    public get apiKey(): string {
+    public get apiKey(): string | undefined {
         return this.#projectApiKey;
     }
 }
