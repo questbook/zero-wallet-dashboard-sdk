@@ -40,7 +40,7 @@ export class BiconomyRelayer implements BaseRelayer {
     }
 
     static async createGasTank(
-        gasTank: Omit<GasTankProps, 'apiKey' | 'createdAt'>,
+        gasTank: Omit<GasTankProps, 'apiKey' | 'createdAt' | 'gasTankId'>,
         authToken: string
     ): Promise<GasTankCreationResponse> {
         const url =

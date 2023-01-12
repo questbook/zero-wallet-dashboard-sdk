@@ -17,6 +17,7 @@ export type ZeroWalletProvidersType = {
 };
 
 export type GasTankProps = {
+    gasTankId: string;
     name: string;
     apiKey: string;
     createdAt: string;

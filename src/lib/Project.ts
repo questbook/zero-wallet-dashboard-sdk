@@ -41,7 +41,7 @@ export default class Project {
     }
 
     async addGasTank(
-        gasTank: Omit<GasTankProps, 'apiKey' | 'createdAt'>,
+        gasTank: Omit<GasTankProps, 'apiKey' | 'createdAt' | 'gasTankId'>,
         whiteList: string[]
     ): Promise<void> {
         await this.readyPromise;
@@ -75,6 +75,7 @@ export default class Project {
         if (this.#loadAllOnInit) {
             this.#gasTanks[gasTank.name] = new GasTank(
                 {
+                    gasTankId,
                     apiKey,
                     ...gasTank,
                     createdAt: now.toDateString()
