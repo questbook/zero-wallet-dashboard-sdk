@@ -35,7 +35,7 @@ const constants: {
     project?: Project;
 } = {
     wallet: ethers.Wallet.createRandom(),
-    projectsManager: new ProjectsManager('./testing.yml')
+    projectsManager: new ProjectsManager('./testing.yml', true)
 };
 
 beforeAll(async () => {
@@ -105,15 +105,27 @@ describe('ProjectManager', () => {
         await project.readyPromise;
 
         await project.addGasTank(gasTankProps, gasTankWhiteList);
-        const gasTank = await project.loadAndGetGasTankByChainId(
+
+        // By chain id
+        const gasTankByChainId = await project.loadAndGetGasTankByChainId(
             gasTankProps.chainId
         );
+        expect(gasTankByChainId).toBeInstanceOf(GasTank);
 
-        expect(gasTank).toBeInstanceOf(GasTank);
+        // By name
+        const gasTankByName = await project.loadAndGetGasTankByName(
+            gasTankProps.name
+        );
+        expect(gasTankByName).toBeInstanceOf(GasTank);
 
         // Biconomy throws an error if the gas tank is empty.
         try {
-            await gasTank.readyPromise;
+            await gasTankByChainId.readyPromise;
+            // eslint-disable-next-line no-empty
+        } catch {}
+
+        try {
+            await gasTankByName.readyPromise;
             // eslint-disable-next-line no-empty
         } catch {}
     });

@@ -27,8 +27,14 @@ export default class ProjectsManager {
     #pool: Pool;
     #authToken: string;
     readyPromise: Promise<void>;
+    isTesting: boolean;
 
-    constructor(path: string) {
+    /**
+     *
+     * @param path the path to the yml file which includes the database config and the auth token.
+     * @param isTesting if true, the database will be cleared before starting the server.
+     */
+    constructor(path: string, isTesting?: boolean) {
         let doc: fileDoc | unknown;
 
         try {
@@ -41,6 +47,7 @@ export default class ProjectsManager {
         } catch (e) {
             throw new Error(e as string);
         }
+        this.isTesting = isTesting || false;
         this.#authToken = doc.authToken;
         const parsedDataBaseConfig = {
             ...doc.databaseConfig,
@@ -95,8 +102,9 @@ export default class ProjectsManager {
     }
 
     async getDatabaseReadyWithIndex() {
-        // @todo: the next line should be uncommented only in testing
-        await this.#clearDatabase();
+        if (this.isTesting) {
+            await this.#clearDatabase();
+        }
 
         await this.#createTables();
         await this.#createIndices();
