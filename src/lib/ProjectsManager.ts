@@ -144,6 +144,23 @@ export default class ProjectsManager {
         }
     }
 
+    async getEstimateProjectCount() {
+        await this.readyPromise;
+        const projects = await this.#pool.query<{ estimate: string }>(
+            'SELECT reltuples AS estimate FROM pg_class where relname = $1 ;',
+            ['projects']
+        );
+        return +projects.rows[0].estimate;
+    }
+
+    async getProjectsCount() {
+        await this.readyPromise;
+        const projects = await this.#pool.query<{ count: string }>(
+            'SELECT COUNT(*) FROM projects;'
+        );
+        return +projects.rows[0].count;
+    }
+
     async getAllProjectsOwnerRaw(ownerScw: string) {
         await this.readyPromise;
         const projects = await this.#pool.query<ProjectType>(
