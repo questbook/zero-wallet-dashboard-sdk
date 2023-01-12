@@ -65,35 +65,36 @@ afterAll(async () => {
 describe('ProjectManager', () => {
     test('project manager created successfully with zero projects', async () => {
         expect(constants.projectsManager).toBeInstanceOf(ProjectsManager);
-        const projects = await constants.projectsManager.getAllProjectsRaw();
-        expect(projects.length).toBe(0);
+        const count = await constants.projectsManager.getProjectsCount();
+        expect(count).toBe(0);
     });
 
     test('project manager adds then removes a project', async () => {
-        const { apiKey } = await constants.projectsManager.addProject(
+        const { projectId } = await constants.projectsManager.addProject(
             mockProject1.name,
             mockProject1.ownerScw,
             mockProject1.allowedOrigins
         );
-        const projects = await constants.projectsManager.getAllProjectsRaw();
-        const project = await constants.projectsManager.getProject(apiKey);
+        const project = await constants.projectsManager.getProjectById(
+            projectId!
+        );
         await project.readyPromise;
 
-        expect(projects.length).toBe(1);
+        const count = await constants.projectsManager.getProjectsCount();
+        expect(count).toBe(1);
         expect(project).toBeInstanceOf(Project);
         expect(project).toEqual(
             expect.objectContaining({
                 name: mockProject1.name,
                 owner: mockProject1.ownerScw,
                 allowedOrigins: mockProject1.allowedOrigins,
-                apiKey
+                projectId
             })
         );
 
-        await constants.projectsManager.removeProject(apiKey);
-        const projectsEmpty =
-            await constants.projectsManager.getAllProjectsRaw();
-        expect(projectsEmpty.length).toBe(0);
+        await constants.projectsManager.removeProject(projectId!);
+        const countAgain = await constants.projectsManager.getProjectsCount();
+        expect(countAgain).toBe(0);
     });
 
     test('project has a gas tank', async () => {
