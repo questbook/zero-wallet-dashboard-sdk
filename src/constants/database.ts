@@ -4,6 +4,7 @@ export const createProjectsTableQuery =
     ' \
 CREATE TABLE IF NOT EXISTS projects ( \
     project_id UUID PRIMARY KEY DEFAULT gen_random_uuid(), \
+    project_api_key UUID DEFAULT gen_random_uuid(), \
     name VARCHAR ( 256 ) NOT NULL, \
     created_at TIMESTAMPTZ NOT NULL, \
     owner_scw VARCHAR ( 70 ) NOT NULL, \
@@ -60,6 +61,11 @@ export const dropContractsWhitelistTable =
 export const dropGasTanksTableQuery = 'DROP TABLE IF EXISTS gas_tanks;';
 export const dropProjectsTableQuery = 'DROP TABLE IF EXISTS projects;';
 
+export const createIndexForProjectsTableApiKey =
+    'CREATE INDEX projects_index ON projects USING HASH (project_api_key);';
+export const createIndexForProjectsTableOwner =
+    'CREATE INDEX projects_index ON projects USING HASH (owner_scw);';
+
 export const createIndexForGasTanksTable =
     'CREATE INDEX gas_tanks_index ON gas_tanks USING HASH (project_id);';
 
@@ -76,8 +82,12 @@ export const addGasTankQuery =
     'INSERT INTO gas_tanks (api_key, project_id, created_at, name, chain_id, provider_url, funding_key) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING gas_tank_id';
 export const addMultiGasTankWhitelistQuery =
     'INSERT INTO contracts_whitelist (address, gas_tank_id) SELECT * FROM UNNEST ($1::VARCHAR[], $2::BIGINT[])';
+export const addContractWhitelistQuery =
+    'INSERT INTO contracts_whitelist (address, gas_tank_id) VALUES ($1, $2);';
 
 // read
+export const getProjectsByOwnerQuery =
+    'SELECT project_id as "projectId", project_api_key as "projectApiKey", name, created_at as "createdAt", owner_scw as "ownerScw", allowed_origins as "allowedOrigins" FROM projects WHERE owner_scw = $1';
 export const getGasTanksByProjectIdQuery =
     'SELECT name, api_key as "apiKey", chain_id as "chainId", provider_url as "providerURL", created_at as "createdAt", funding_key as "fundingKey" FROM gas_tanks WHERE project_id = $1';
 export const getGasTankByChainIdQuery =
