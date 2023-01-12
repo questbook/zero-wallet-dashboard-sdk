@@ -16,9 +16,10 @@ import {
     dropContractsWhitelistTable,
     dropGaslessLoginTableQuery,
     dropGasTanksTableQuery,
-    dropProjectsTableQuery
+    dropProjectsTableQuery,
+    getProjectsByOwnerQuery
 } from '../constants/database';
-import { fileDoc } from '../types';
+import { fileDoc, ProjectType } from '../types';
 import { isFileDoc } from '../utils/typeChecker';
 
 import Project from './Project';
@@ -143,9 +144,12 @@ export default class ProjectsManager {
         }
     }
 
-    async getAllProjectsRaw() {
+    async getAllProjectsOwnerRaw(ownerScw: string) {
         await this.readyPromise;
-        const projects = await this.#pool.query('SELECT * FROM projects;');
+        const projects = await this.#pool.query<ProjectType>(
+            getProjectsByOwnerQuery,
+            [ownerScw]
+        );
         return projects.rows;
     }
 

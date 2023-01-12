@@ -87,7 +87,7 @@ export const addContractWhitelistQuery =
 
 // read
 export const getProjectsByOwnerQuery =
-    'SELECT project_id as "projectId", project_api_key as "projectApiKey", name, created_at as "createdAt", owner_scw as "ownerScw", allowed_origins as "allowedOrigins" FROM projects WHERE owner_scw = $1';
+    'SELECT * FROM projects WHERE owner_scw = $1';
 export const getGasTanksByProjectIdQuery =
     'SELECT name, api_key as "apiKey", chain_id as "chainId", provider_url as "providerURL", created_at as "createdAt", funding_key as "fundingKey" FROM gas_tanks WHERE project_id = $1';
 export const getGasTankByChainIdQuery =
