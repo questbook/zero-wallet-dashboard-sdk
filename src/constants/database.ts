@@ -60,9 +60,6 @@ export const dropContractsWhitelistTable =
 export const dropGasTanksTableQuery = 'DROP TABLE IF EXISTS gas_tanks;';
 export const dropProjectsTableQuery = 'DROP TABLE IF EXISTS projects;';
 
-// export const createIndexForProjectsTable =
-//     'CREATE INDEX projects_index ON projects USING HASH (api_key);';
-
 export const createIndexForGasTanksTable =
     'CREATE INDEX gas_tanks_index ON gas_tanks USING HASH (project_id);';
 
@@ -85,6 +82,8 @@ export const getGasTanksByProjectIdQuery =
     'SELECT name, api_key as "apiKey", chain_id as "chainId", provider_url as "providerURL", created_at as "createdAt", funding_key as "fundingKey" FROM gas_tanks WHERE project_id = $1';
 export const getGasTankByChainIdQuery =
     'SELECT name, api_key as "apiKey", chain_id as "chainId", provider_url as "providerURL", created_at as "createdAt", funding_key as "fundingKey" FROM gas_tanks WHERE project_id = $1 AND chain_id = $2';
+export const getGasTankByNameQuery =
+    'SELECT name, api_key as "apiKey", chain_id as "chainId", provider_url as "providerURL", created_at as "createdAt", funding_key as "fundingKey" FROM gas_tanks WHERE project_id = $1 AND name = $2';
 
 // delete
 export const deleteProjectQuery =

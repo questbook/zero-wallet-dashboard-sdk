@@ -4,6 +4,7 @@ import {
     addGasTankQuery,
     addMultiGasTankWhitelistQuery,
     getGasTankByChainIdQuery,
+    getGasTankByNameQuery,
     getGasTanksByProjectIdQuery
 } from '../constants/database';
 import { GasTankProps, GasTanksType } from '../types';
@@ -138,6 +139,22 @@ export default class Project {
         const { rows } = await this.#pool.query<GasTankProps>(
             getGasTankByChainIdQuery,
             [this.#projectApiKey, chainId]
+        );
+        if (rows.length === 0) {
+            throw new Error('gas tank not found');
+        }
+        const gasTankProps = {
+            ...rows[0],
+            fundingKey: +rows[0].fundingKey
+        };
+        const gasTank = new GasTank(gasTankProps, this.#pool);
+        return gasTank;
+    }
+
+    async loadAndGetGasTankByName(name: string): Promise<GasTank> {
+        const { rows } = await this.#pool.query<GasTankProps>(
+            getGasTankByNameQuery,
+            [this.#projectApiKey, name]
         );
         if (rows.length === 0) {
             throw new Error('gas tank not found');
