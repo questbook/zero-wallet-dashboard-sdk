@@ -63,11 +63,28 @@ export type SignedMessage = {
     v: number;
 };
 
-export type ProjectType = {
+export type ProjectRawType = {
     project_id: string;
     project_api_key: string;
     name: string;
     created_at: string;
     owner_scw: string;
     allowed_origins: string[];
+};
+
+export type GasTankRawType = {
+    gas_tank_id: string;
+    project_id: string;
+    created_at: string;
+    name: string;
+    chain_id: SupportedChainId;
+    provider_url: string;
+    funding_key: number;
+    whitelist: string[];
+};
+
+export type NewGasTankParams = {
+    name: string;
+    chainId: SupportedChainId;
+    providerURL: string;
 };

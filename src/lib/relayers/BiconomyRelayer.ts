@@ -7,8 +7,8 @@ import {
     BiconomySendGaslessTransactionParams,
     BiconomyWalletClientType,
     GasTankCreationResponse,
-    GasTankProps,
     InitBiconomyRelayerProps,
+    NewGasTankParams,
     SendGaslessTransactionType,
     ZeroWalletProviderType
 } from '../../types';
@@ -40,7 +40,7 @@ export class BiconomyRelayer implements BaseRelayer {
     }
 
     static async createGasTank(
-        gasTank: Omit<GasTankProps, 'apiKey' | 'createdAt' | 'gasTankId'>,
+        gasTank: NewGasTankParams,
         authToken: string
     ): Promise<GasTankCreationResponse> {
         const url =

@@ -5,9 +5,16 @@ import {
     addMultiGasTankWhitelistQuery,
     getGasTankByChainIdQuery,
     getGasTankByNameQuery,
-    getGasTanksByProjectIdQuery
+    getGasTanksByProjectIdQuery,
+    getGasTanksByProjectIdRaw
 } from '../constants/database';
-import { GasTankProps, GasTanksType, ProjectType } from '../types';
+import {
+    GasTankProps,
+    GasTankRawType,
+    GasTanksType,
+    NewGasTankParams,
+    ProjectRawType
+} from '../types';
 
 import { GasTank } from './GasTank';
 import { BiconomyRelayer } from './relayers/BiconomyRelayer';
@@ -50,7 +57,7 @@ export default class Project {
     }
 
     async addGasTank(
-        gasTank: Omit<GasTankProps, 'apiKey' | 'createdAt' | 'gasTankId'>,
+        gasTank: NewGasTankParams,
         whiteList: string[]
     ): Promise<void> {
         await this.readyPromise;
@@ -87,14 +94,15 @@ export default class Project {
                     gasTankId,
                     apiKey,
                     ...gasTank,
-                    createdAt: now.toDateString()
+                    createdAt: now.toDateString(),
+                    fundingKey
                 },
                 this.#pool
             );
         }
     }
 
-    async #getProjectDetailsRow(): Promise<ProjectType> {
+    async #getProjectDetailsRow(): Promise<ProjectRawType> {
         if (this.#projectApiKey) {
             const res = await this.#pool.query(
                 'SELECT * FROM projects WHERE project_api_key = $1',
@@ -192,6 +200,15 @@ export default class Project {
         };
         const gasTank = new GasTank(gasTankProps, this.#pool);
         return gasTank;
+    }
+
+    async getGasTanksRaw(): Promise<GasTankRawType[]> {
+        await this.readyPromise;
+        const { rows } = await this.#pool.query<GasTankRawType>(
+            getGasTanksByProjectIdRaw,
+            [this.projectId]
+        );
+        return rows;
     }
 
     getLoadedGasTank(name: string): GasTank {

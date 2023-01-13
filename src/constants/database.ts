@@ -94,6 +94,26 @@ export const getGasTankByChainIdQuery =
     'SELECT name, api_key as "apiKey", chain_id as "chainId", provider_url as "providerURL", created_at as "createdAt", funding_key as "fundingKey" FROM gas_tanks WHERE project_id = $1 AND chain_id = $2';
 export const getGasTankByNameQuery =
     'SELECT name, api_key as "apiKey", chain_id as "chainId", provider_url as "providerURL", created_at as "createdAt", funding_key as "fundingKey" FROM gas_tanks WHERE project_id = $1 AND name = $2';
+export const getGasTanksByProjectIdRaw =
+    ' \
+    SELECT gas_tank_id, project_id, gt.created_at, gt.name, chain_id, provider_url, funding_key, ARRAY_AGG (address) whitelist \
+    FROM projects \
+    RIGHT JOIN gas_tanks gt USING(project_id) \
+    LEFT JOIN contracts_whitelist USING(gas_tank_id) \
+    WHERE project_id = $1 \
+    GROUP BY gas_tank_id \
+    ;';
+
+// 'SELECT gt.gas_tank_id, gt.project_id, gt.created_at, gt.name, gt.chain_id, gt.provider_url, gt.funding_key \
+// FROM ( \
+//     SELECT gas_tank_id, project_id, created_at, name, chain_id, provider_url, funding_key \
+//     FROM gas_tanks \
+//     WHERE project_id = $1 \
+// ) AS gt \
+// LEFT JOIN contracts_whitelist AS cw \
+// ON gt.gas_tank_id = cw.gas_tank_id \
+// WHERE cw.address IS NULL \
+// ORDER BY gt.gas_tank_id ASC';
 
 // delete
 export const deleteProjectQuery =

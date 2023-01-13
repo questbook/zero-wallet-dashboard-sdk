@@ -23,8 +23,7 @@ const gasTankProps = {
     name: 'testGasTank1',
     chainId: 5,
     providerURL:
-        'https://eth-goerli.g.alchemy.com/v2/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
-    fundingKey: 0
+        'https://eth-goerli.g.alchemy.com/v2/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
 };
 
 const gasTankWhiteList = ['0x123', '0x456'];
@@ -118,6 +117,22 @@ describe('ProjectManager', () => {
             gasTankProps.name
         );
         expect(gasTankByName).toBeInstanceOf(GasTank);
+
+        // getting all gas tanks raw
+        const gasTanks = await project.getGasTanksRaw();
+        console.log(gasTanks);
+
+        expect(gasTanks).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    project_id: project.projectId!,
+                    name: gasTankProps.name,
+                    chain_id: gasTankProps.chainId.toString(),
+                    provider_url: gasTankProps.providerURL,
+                    whitelist: expect.arrayContaining(gasTankWhiteList)
+                })
+            ])
+        );
 
         // Biconomy throws an error if the gas tank is empty.
         try {

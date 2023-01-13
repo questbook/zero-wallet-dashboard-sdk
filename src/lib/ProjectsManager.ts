@@ -19,7 +19,7 @@ import {
     dropProjectsTableQuery,
     getProjectsByOwnerQuery
 } from '../constants/database';
-import { fileDoc, ProjectType } from '../types';
+import { fileDoc, ProjectRawType } from '../types';
 import { isFileDoc } from '../utils/typeChecker';
 
 import Project from './Project';
@@ -163,7 +163,7 @@ export default class ProjectsManager {
 
     async getAllProjectsOwnerRaw(ownerScw: string) {
         await this.readyPromise;
-        const projects = await this.#pool.query<ProjectType>(
+        const projects = await this.#pool.query<ProjectRawType>(
             getProjectsByOwnerQuery,
             [ownerScw]
         );
