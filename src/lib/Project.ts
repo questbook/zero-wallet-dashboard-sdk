@@ -38,7 +38,6 @@ export default class Project {
         if ((!projectApiKey && !projectId) || (projectApiKey && projectId)) {
             throw new Error('either project id or project api key is required');
         }
-        console.log(whichProject);
         this.projectId = projectId;
         this.#projectApiKey = projectApiKey;
         this.#authToken = authToken;
