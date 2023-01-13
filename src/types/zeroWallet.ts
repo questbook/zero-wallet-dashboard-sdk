@@ -77,9 +77,9 @@ export type GasTankRawType = {
     project_id: string;
     created_at: string;
     name: string;
-    chain_id: SupportedChainId;
+    chain_id: string;
     provider_url: string;
-    funding_key: number;
+    funding_key: string;
     whitelist: string[];
 };
 
