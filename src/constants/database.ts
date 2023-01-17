@@ -84,6 +84,8 @@ export const addMultiGasTankWhitelistQuery =
     'INSERT INTO contracts_whitelist (address, gas_tank_id) SELECT * FROM UNNEST ($1::VARCHAR[], $2::BIGINT[])';
 export const addContractWhitelistQuery =
     'INSERT INTO contracts_whitelist (address, gas_tank_id) VALUES ($1, $2);';
+export const addGaslessLoginQuery =
+    'INSERT INTO gasless_login (address, nonce, expiration, gas_tank_id) VALUES ($1, $2, $3, $4)';
 
 // read
 export const getProjectsByOwnerQuery =

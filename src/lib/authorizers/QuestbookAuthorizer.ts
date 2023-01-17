@@ -3,6 +3,7 @@ import { Pool } from 'pg';
 
 import {
     addContractWhitelistQuery,
+    addGaslessLoginQuery,
     NONCE_EXPIRATION
 } from '../../constants/database';
 import { SignedMessage } from '../../types';
@@ -56,7 +57,7 @@ export default class QuestbookAuthorizer implements BaseAuthorizer {
 
         try {
             await this.#query(
-                `INSERT INTO gasless_login VALUES ($1, $2, $3, $4);`,
+                addGaslessLoginQuery,
                 [
                     address,
                     newNonce,
