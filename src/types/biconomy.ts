@@ -12,7 +12,6 @@ export type SignedTransactionType = {
 };
 
 export type BiconomyRelayerProps = {
-    name: string;
     apiKey: string;
     chainId: SupportedChainId;
     providerURL: string;

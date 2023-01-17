@@ -1,6 +1,6 @@
 // import { PassThrough } from 'stream';
 
-import { afterAll, beforeAll, describe, expect, test } from '@jest/globals';
+import { afterAll, describe, expect, test } from '@jest/globals';
 import { ethers } from 'ethers';
 
 import { GasTank } from '../lib/GasTank';
@@ -20,13 +20,13 @@ const mockProject2 = {
 };
 
 const gasTankProps = {
-    name: 'testGasTank1',
     chainId: 5,
     providerURL:
         'https://eth-goerli.g.alchemy.com/v2/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
 };
 
 const gasTankWhiteList = ['0x123', '0x456'];
+const createdGasTanks: GasTank[] = [];
 
 const constants: {
     wallet: ethers.Wallet;
@@ -37,28 +37,14 @@ const constants: {
     projectsManager: new ProjectsManager('./testing.yml', true)
 };
 
-beforeAll(async () => {
-    // try {
-    // constants.project = await constants.projectsManager.addProject(
-    //     projectParams.name,
-    //     projectParams.ownerScw,
-    //     projectParams.allowedOrigins
-    // );
-    // await constants.project.readyPromise;
-    // await constants.project.addGasTank(gasTankProps);
-    // constants.project = await constants.projectsManager.getProject(
-    //     projectApiKey
-    // );
-    // } catch (e) {
-    //     PassThrough;
-    // }
-    await constants.projectsManager.readyPromise;
-});
-
 afterAll(async () => {
-    // await constants.projectsManager.clearDatabase();
+    const gasTanksReady = createdGasTanks.map(async (gasTank) => {
+        await gasTank.readyPromise;
+    });
+    // Biconomy throws an error if the gas tank is empty.
+    await Promise.allSettled(gasTanksReady);
+
     await constants.projectsManager.endConnection();
-    // await constants.project?.getGasTank(gasTankProps.name);
 });
 
 describe('ProjectManager', () => {
@@ -102,7 +88,6 @@ describe('ProjectManager', () => {
             mockProject2.ownerScw,
             mockProject2.allowedOrigins
         );
-        await project.readyPromise;
 
         await project.addGasTank(gasTankProps, gasTankWhiteList);
 
@@ -110,39 +95,54 @@ describe('ProjectManager', () => {
         const gasTankByChainId = await project.loadAndGetGasTankByChainId(
             gasTankProps.chainId
         );
+        // eslint-disable-next-line @typescript-eslint/no-empty-function
+        gasTankByChainId.readyPromise.catch(() => {});
+        createdGasTanks.push(gasTankByChainId);
         expect(gasTankByChainId).toBeInstanceOf(GasTank);
-
-        // By name
-        const gasTankByName = await project.loadAndGetGasTankByName(
-            gasTankProps.name
-        );
-        expect(gasTankByName).toBeInstanceOf(GasTank);
 
         // getting all gas tanks raw
         const gasTanks = await project.getGasTanksRaw();
-        console.log(gasTanks);
 
         expect(gasTanks).toEqual(
             expect.arrayContaining([
                 expect.objectContaining({
                     project_id: project.projectId!,
-                    name: gasTankProps.name,
                     chain_id: gasTankProps.chainId.toString(),
                     provider_url: gasTankProps.providerURL,
                     whitelist: expect.arrayContaining(gasTankWhiteList)
                 })
             ])
         );
+    });
 
-        // Biconomy throws an error if the gas tank is empty.
-        try {
-            await gasTankByChainId.readyPromise;
-            // eslint-disable-next-line no-empty
-        } catch {}
+    test('project tries to add two gas tanks on the same network', async () => {
+        const project = await constants.projectsManager.addProject(
+            mockProject2.name,
+            mockProject2.ownerScw,
+            mockProject2.allowedOrigins
+        );
+
+        await project.addGasTank(gasTankProps, gasTankWhiteList);
+        const gasTank = await project.loadAndGetGasTankByChainId(
+            gasTankProps.chainId
+        );
+        // eslint-disable-next-line @typescript-eslint/no-empty-function
+        gasTank.readyPromise.catch(() => {});
+        createdGasTanks.push(gasTank);
 
         try {
-            await gasTankByName.readyPromise;
-            // eslint-disable-next-line no-empty
-        } catch {}
+            await project.addGasTank(gasTankProps, gasTankWhiteList);
+            throw new Error(
+                'Should not be able to add two gas tanks on the same network'
+            );
+        } catch (e: unknown) {
+            let message;
+            if (typeof e === 'string') {
+                message = e.toUpperCase(); // works, `e` narrowed to string
+            } else if (e instanceof Error) {
+                message = e.message; // works, `e` narrowed to Error
+            }
+            expect(message).toBe('gas tank chain id should be unique');
+        }
     });
 });

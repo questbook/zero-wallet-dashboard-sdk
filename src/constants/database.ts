@@ -19,13 +19,11 @@ CREATE TABLE IF NOT EXISTS gas_tanks ( \
     api_key VARCHAR ( 256 ) NOT NULL, \
     project_id UUID, \
     created_at TIMESTAMPTZ NOT NULL, \
-    name VARCHAR ( 256 ) NOT NULL, \
     chain_id BIGINT NOT NULL, \
     provider_url VARCHAR ( 256 ) NOT NULL, \
     funding_key BIGINT NOT NULL, \
     FOREIGN KEY (project_id) \
       REFERENCES projects (project_id), \
-    UNIQUE (project_id, name), \
     UNIQUE (project_id, chain_id) \
 ); \
 ';
@@ -79,7 +77,7 @@ export const createIndexForGasLessLoginTable =
 export const addProjectQuery =
     'INSERT INTO projects (name, created_at, owner_scw, allowed_origins) VALUES ($1, $2, $3, $4) RETURNING project_id';
 export const addGasTankQuery =
-    'INSERT INTO gas_tanks (api_key, project_id, created_at, name, chain_id, provider_url, funding_key) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING gas_tank_id';
+    'INSERT INTO gas_tanks (api_key, project_id, created_at, chain_id, provider_url, funding_key) VALUES ($1, $2, $3, $4, $5, $6) RETURNING gas_tank_id';
 export const addMultiGasTankWhitelistQuery =
     'INSERT INTO contracts_whitelist (address, gas_tank_id) SELECT * FROM UNNEST ($1::VARCHAR[], $2::BIGINT[])';
 export const addContractWhitelistQuery =
@@ -91,31 +89,19 @@ export const addGaslessLoginQuery =
 export const getProjectsByOwnerQuery =
     'SELECT * FROM projects WHERE owner_scw = $1';
 export const getGasTanksByProjectIdQuery =
-    'SELECT name, api_key as "apiKey", chain_id as "chainId", provider_url as "providerURL", created_at as "createdAt", funding_key as "fundingKey" FROM gas_tanks WHERE project_id = $1';
+    'SELECT api_key as "apiKey", chain_id as "chainId", provider_url as "providerURL", created_at as "createdAt", funding_key as "fundingKey" FROM gas_tanks WHERE project_id = $1';
 export const getGasTankByChainIdQuery =
-    'SELECT name, api_key as "apiKey", chain_id as "chainId", provider_url as "providerURL", created_at as "createdAt", funding_key as "fundingKey" FROM gas_tanks WHERE project_id = $1 AND chain_id = $2';
-export const getGasTankByNameQuery =
-    'SELECT name, api_key as "apiKey", chain_id as "chainId", provider_url as "providerURL", created_at as "createdAt", funding_key as "fundingKey" FROM gas_tanks WHERE project_id = $1 AND name = $2';
+    'SELECT api_key as "apiKey", chain_id as "chainId", provider_url as "providerURL", created_at as "createdAt", funding_key as "fundingKey" FROM gas_tanks WHERE project_id = $1 AND chain_id = $2';
+
 export const getGasTanksByProjectIdRaw =
     ' \
-    SELECT gas_tank_id, project_id, gt.created_at, gt.name, chain_id, provider_url, funding_key, ARRAY_AGG (address) whitelist \
+    SELECT gas_tank_id, project_id, gt.created_at, chain_id, provider_url, funding_key, ARRAY_AGG (address) whitelist \
     FROM projects \
     RIGHT JOIN gas_tanks gt USING(project_id) \
     LEFT JOIN contracts_whitelist USING(gas_tank_id) \
     WHERE project_id = $1 \
     GROUP BY gas_tank_id \
     ;';
-
-// 'SELECT gt.gas_tank_id, gt.project_id, gt.created_at, gt.name, gt.chain_id, gt.provider_url, gt.funding_key \
-// FROM ( \
-//     SELECT gas_tank_id, project_id, created_at, name, chain_id, provider_url, funding_key \
-//     FROM gas_tanks \
-//     WHERE project_id = $1 \
-// ) AS gt \
-// LEFT JOIN contracts_whitelist AS cw \
-// ON gt.gas_tank_id = cw.gas_tank_id \
-// WHERE cw.address IS NULL \
-// ORDER BY gt.gas_tank_id ASC';
 
 // delete
 export const deleteProjectQuery =

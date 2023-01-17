@@ -41,13 +41,14 @@ export class BiconomyRelayer implements BaseRelayer {
 
     static async createGasTank(
         gasTank: NewGasTankParams,
+        name: string,
         authToken: string
     ): Promise<GasTankCreationResponse> {
         const url =
             'https://api.biconomy.io/api/v1/dapp/public-api/create-dapp';
 
         const formData = new URLSearchParams({
-            dappName: gasTank.name,
+            dappName: name,
             networkId: gasTank.chainId.toString(),
             enableBiconomyWallet: 'true'
         });

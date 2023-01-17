@@ -15,7 +15,6 @@ import { BiconomyRelayer } from './relayers/BiconomyRelayer';
 
 export class GasTank {
     // public fields
-    gasTankName: string;
     chainId: SupportedChainId;
     createdAt: string;
     fundingKey: number;
@@ -26,12 +25,10 @@ export class GasTank {
     authorizer: QuestbookAuthorizer; // We can change the authorizer by simply swapping out the QuestbookAuthorizer
 
     constructor(gasTank: GasTankProps, pool: Pool) {
-        this.gasTankName = gasTank.name;
         this.createdAt = gasTank.createdAt;
         this.chainId = gasTank.chainId;
         this.fundingKey = gasTank.fundingKey;
         this.#relayer = new BiconomyRelayer({
-            name: gasTank.name,
             chainId: gasTank.chainId,
             apiKey: gasTank.apiKey,
             providerURL: gasTank.providerURL
@@ -178,12 +175,11 @@ export class GasTank {
     }
 
     public toString(): string {
-        return `GasTank: ${this.gasTankName}, chainId: ${this.chainId}`;
+        return `GasTank: chainId: ${this.chainId}`;
     }
 
     public getInfo(): { [key: string]: string } {
         return {
-            name: this.gasTankName,
             chainId: this.chainId.toString()
         };
     }

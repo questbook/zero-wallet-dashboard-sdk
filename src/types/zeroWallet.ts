@@ -18,7 +18,6 @@ export type ZeroWalletProvidersType = {
 
 export type GasTankProps = {
     gasTankId: string;
-    name: string;
     apiKey: string;
     createdAt: string;
     chainId: SupportedChainId;
@@ -76,7 +75,6 @@ export type GasTankRawType = {
     gas_tank_id: string;
     project_id: string;
     created_at: string;
-    name: string;
     chain_id: string;
     provider_url: string;
     funding_key: string;
@@ -84,7 +82,6 @@ export type GasTankRawType = {
 };
 
 export type NewGasTankParams = {
-    name: string;
     chainId: SupportedChainId;
     providerURL: string;
 };

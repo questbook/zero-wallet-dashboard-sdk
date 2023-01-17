@@ -56,15 +56,12 @@ export default class QuestbookAuthorizer implements BaseAuthorizer {
         const newNonce = this.#createNonce(100);
 
         try {
-            await this.#query(
-                addGaslessLoginQuery,
-                [
-                    address,
-                    newNonce,
-                    NONCE_EXPIRATION + Math.trunc(new Date().getTime() / 1000),
-                    this.#gasTankId
-                ]
-            );
+            await this.#query(addGaslessLoginQuery, [
+                address,
+                newNonce,
+                NONCE_EXPIRATION + Math.trunc(new Date().getTime() / 1000),
+                this.#gasTankId
+            ]);
         } catch (err) {
             throw new Error(err as string);
         }

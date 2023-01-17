@@ -1,10 +1,10 @@
 import { Pool } from 'pg';
 
+import { SupportedChainId } from '../constants/chains';
 import {
     addGasTankQuery,
     addMultiGasTankWhitelistQuery,
     getGasTankByChainIdQuery,
-    getGasTankByNameQuery,
     getGasTanksByProjectIdQuery,
     getGasTanksByProjectIdRaw
 } from '../constants/database';
@@ -56,17 +56,28 @@ export default class Project {
             : this.#initProjectDetails();
     }
 
+    async doesGasTankExist(chainId: SupportedChainId): Promise<boolean> {
+        await this.readyPromise;
+        const { rows } = await this.#pool.query(getGasTankByChainIdQuery, [
+            this.projectId,
+            chainId
+        ]);
+        return rows.length > 0;
+    }
+
     async addGasTank(
         gasTank: NewGasTankParams,
         whiteList: string[]
     ): Promise<void> {
         await this.readyPromise;
-        if (this.#gasTanks[gasTank.name] !== undefined) {
-            throw new Error('gas tank name should be unique');
-        }
 
+        if (await this.doesGasTankExist(gasTank.chainId)) {
+            throw new Error('gas tank chain id should be unique');
+        }
+        const gasTankName = `gas-tank-${this.projectId}-${gasTank.chainId}`;
         const { apiKey, fundingKey } = await BiconomyRelayer.createGasTank(
             gasTank,
+            gasTankName,
             this.#authToken
         );
         const now = new Date();
@@ -75,7 +86,6 @@ export default class Project {
                 apiKey,
                 this.projectId,
                 now,
-                gasTank.name,
                 gasTank.chainId,
                 gasTank.providerURL,
                 fundingKey
@@ -87,19 +97,6 @@ export default class Project {
             whiteList,
             gasTankIdList
         ]);
-
-        if (this.#loadAllOnInit) {
-            this.#gasTanks[gasTank.name] = new GasTank(
-                {
-                    gasTankId,
-                    apiKey,
-                    ...gasTank,
-                    createdAt: now.toDateString(),
-                    fundingKey
-                },
-                this.#pool
-            );
-        }
     }
 
     async #getProjectDetailsRow(): Promise<ProjectRawType> {
@@ -138,14 +135,11 @@ export default class Project {
         if (gasTanks) {
             await Promise.all(
                 gasTanks.map(async (gasTank: GasTankProps) => {
-                    if (this.#gasTanks[gasTank.name] !== undefined) {
-                        throw new Error('gas tank name should be unique');
-                    }
-                    this.#gasTanks[gasTank.name] = new GasTank(
+                    this.#gasTanks[gasTank.chainId] = new GasTank(
                         gasTank,
                         this.#pool
                     );
-                    await this.#gasTanks[gasTank.name].readyPromise;
+                    await this.#gasTanks[gasTank.chainId].readyPromise;
                 })
             );
         }
@@ -188,23 +182,6 @@ export default class Project {
         return gasTank;
     }
 
-    async loadAndGetGasTankByName(name: string): Promise<GasTank> {
-        await this.readyPromise;
-        const { rows } = await this.#pool.query<GasTankProps>(
-            getGasTankByNameQuery,
-            [this.projectId, name]
-        );
-        if (rows.length === 0) {
-            throw new Error('gas tank not found');
-        }
-        const gasTankProps = {
-            ...rows[0],
-            fundingKey: +rows[0].fundingKey
-        };
-        const gasTank = new GasTank(gasTankProps, this.#pool);
-        return gasTank;
-    }
-
     async getGasTanksRaw(): Promise<GasTankRawType[]> {
         await this.readyPromise;
         const { rows } = await this.#pool.query<GasTankRawType>(
@@ -214,9 +191,9 @@ export default class Project {
         return rows;
     }
 
-    async getLoadedGasTank(name: string): Promise<GasTank> {
+    async getLoadedGasTank(chainId: string): Promise<GasTank> {
         await this.readyPromise;
-        return this.#gasTanks[name];
+        return this.#gasTanks[chainId];
     }
 
     public get apiKey(): string | undefined {
