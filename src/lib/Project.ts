@@ -156,6 +156,7 @@ export default class Project {
     }
 
     async #obtainGasTanksFromDatabase(): Promise<GasTanksType> {
+        await this.readyPromise;
         try {
             const res = await this.#pool.query<GasTankProps>(
                 getGasTanksByProjectIdQuery,
@@ -171,6 +172,7 @@ export default class Project {
     }
 
     async loadAndGetGasTankByChainId(chainId: number): Promise<GasTank> {
+        await this.readyPromise;
         const { rows } = await this.#pool.query<GasTankProps>(
             getGasTankByChainIdQuery,
             [this.projectId, chainId]
@@ -187,6 +189,7 @@ export default class Project {
     }
 
     async loadAndGetGasTankByName(name: string): Promise<GasTank> {
+        await this.readyPromise;
         const { rows } = await this.#pool.query<GasTankProps>(
             getGasTankByNameQuery,
             [this.projectId, name]
@@ -211,7 +214,8 @@ export default class Project {
         return rows;
     }
 
-    getLoadedGasTank(name: string): GasTank {
+    async getLoadedGasTank(name: string): Promise<GasTank> {
+        await this.readyPromise;
         return this.#gasTanks[name];
     }
 
