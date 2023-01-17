@@ -82,6 +82,47 @@ describe('ProjectManager', () => {
         expect(countAgain).toBe(0);
     });
 
+    test('update project name and allowed origins', async () => {
+        const { projectId } = await constants.projectsManager.addProject(
+            mockProject1.name,
+            mockProject1.ownerScw,
+            mockProject1.allowedOrigins
+        );
+        const project = await constants.projectsManager.getProjectById(
+            projectId!
+        );
+
+        const newName = 'ProjectNewName';
+        const newAllowedOrigins = [
+            'http://localhost:3001',
+            'http://localhost:3002'
+        ];
+        await project.updateProject(newName, newAllowedOrigins);
+
+        const updatedProject = await constants.projectsManager.getProjectById(
+            projectId!
+        );
+        await updatedProject.readyPromise;
+
+        expect(updatedProject).toEqual(
+            expect.objectContaining({
+                owner: mockProject1.ownerScw,
+                name: newName,
+                allowedOrigins: newAllowedOrigins,
+                projectId
+            })
+        );
+
+        expect(updatedProject).toEqual(
+            expect.objectContaining({
+                owner: mockProject1.ownerScw,
+                name: newName,
+                allowedOrigins: newAllowedOrigins,
+                projectId
+            })
+        );
+    });
+
     test('project has a gas tank', async () => {
         const project = await constants.projectsManager.addProject(
             mockProject2.name,
@@ -145,4 +186,5 @@ describe('ProjectManager', () => {
             expect(message).toBe('gas tank chain id should be unique');
         }
     });
+
 });

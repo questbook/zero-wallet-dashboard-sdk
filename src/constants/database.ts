@@ -103,6 +103,10 @@ export const getGasTanksByProjectIdRaw =
     GROUP BY gas_tank_id \
     ;';
 
+// update
+export const updateProjectNameAndAllowedOriginsQuery =
+    'UPDATE projects SET name = $1, allowed_origins = $2 WHERE project_id = $3';
+
 // delete
 export const deleteProjectQuery =
     'DELETE FROM projects CASCADE WHERE project_id = $1';

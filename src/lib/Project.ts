@@ -6,7 +6,8 @@ import {
     addMultiGasTankWhitelistQuery,
     getGasTankByChainIdQuery,
     getGasTanksByProjectIdQuery,
-    getGasTanksByProjectIdRaw
+    getGasTanksByProjectIdRaw,
+    updateProjectNameAndAllowedOriginsQuery
 } from '../constants/database';
 import {
     GasTankProps,
@@ -163,6 +164,20 @@ export default class Project {
         } catch (err) {
             throw new Error(err as string);
         }
+    }
+
+    async updateProject(
+        newName: string,
+        newAllowedOrigins: string[]
+    ): Promise<void> {
+        await this.readyPromise;
+        await this.#pool.query(updateProjectNameAndAllowedOriginsQuery, [
+            newName,
+            newAllowedOrigins,
+            this.projectId
+        ]);
+        this.name = newName;
+        this.allowedOrigins = newAllowedOrigins;
     }
 
     async loadAndGetGasTankByChainId(chainId: number): Promise<GasTank> {
