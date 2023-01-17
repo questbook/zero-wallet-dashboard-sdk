@@ -1,1 +1,0 @@
-// INSERT INTO gas_tanks (api_key, project_id, created_at, name, chain_id, provider_url, funding_key) VALUES ('gUqtc6uUFv.b5eafe15-3bfb-4d25-9f31-180c0649fa61', 'a87e5f80-96ac-4382-9bc9-5a2a6cbb179d', current_timestamp, 'testnet', 5, 'https://eth-goerli.g.alchemy.com/v2/c7FL3Wd0zxt_DtjeN1wqMWtCFVUTV_sP', 1672913027226);
