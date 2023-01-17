@@ -121,6 +121,60 @@ describe('ProjectManager', () => {
                 projectId
             })
         );
+
+        await constants.projectsManager.removeProject(projectId!);
+    });
+
+    test('add then removes from contract whitelist', async () => {
+        const { projectId } = await constants.projectsManager.addProject(
+            mockProject1.name,
+            mockProject1.ownerScw,
+            mockProject1.allowedOrigins
+        );
+        const project = await constants.projectsManager.getProjectById(
+            projectId!
+        );
+
+        await project.addGasTank(gasTankProps, gasTankWhiteList);
+
+        const gasTank = await project.loadAndGetGasTankByChainId(
+            gasTankProps.chainId,
+            false
+        );
+        createdGasTanks.push(gasTank);
+
+        const newContractAddress = '0x789';
+
+        await gasTank.addToWhiteList(newContractAddress);
+
+        const gasTankRaw = (await project.getGasTanksRaw()).find(
+            (curGasTank) =>
+                curGasTank.chain_id === gasTankProps.chainId.toString()
+        );
+
+        expect(gasTankRaw).toEqual(
+            expect.objectContaining({
+                whitelist: expect.arrayContaining([
+                    ...gasTankWhiteList,
+                    newContractAddress
+                ])
+            })
+        );
+
+        await gasTank.removeFromWhiteList(newContractAddress);
+
+        const gasTankRawAgain = (await project.getGasTanksRaw()).find(
+            (curGasTank) =>
+                curGasTank.chain_id === gasTankProps.chainId.toString()
+        );
+
+        expect(gasTankRawAgain).toEqual(
+            expect.objectContaining({
+                whitelist: expect.arrayContaining(gasTankWhiteList)
+            })
+        );
+
+        await constants.projectsManager.removeProject(projectId!);
     });
 
     test('update gasTank provider url', async () => {
@@ -164,6 +218,8 @@ describe('ProjectManager', () => {
                 providerURL: newProviderURL
             })
         );
+
+        await constants.projectsManager.removeProject(projectId!);
     });
 
     test('project has a gas tank', async () => {
@@ -196,6 +252,8 @@ describe('ProjectManager', () => {
                 })
             ])
         );
+
+        await constants.projectsManager.removeProject(project.projectId!);
     });
 
     test('project tries to add two gas tanks on the same network', async () => {
@@ -226,5 +284,7 @@ describe('ProjectManager', () => {
             }
             expect(message).toBe('gas tank chain id should be unique');
         }
+
+        await constants.projectsManager.removeProject(project.projectId!);
     });
 });

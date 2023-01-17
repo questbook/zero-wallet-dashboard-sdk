@@ -4,6 +4,7 @@ import { Pool } from 'pg';
 import {
     addContractWhitelistQuery,
     addGaslessLoginQuery,
+    deleteContractsWhitelistQuery,
     NONCE_EXPIRATION
 } from '../../constants/database';
 import { SignedMessage } from '../../types';
@@ -35,6 +36,21 @@ export default class QuestbookAuthorizer implements BaseAuthorizer {
         }
         return true;
     }
+
+    async removeContractFromWhitelist(contractAddress: string): Promise<void> {
+        if (!(await this.isInWhiteList(contractAddress))) {
+            throw new Error('Contract is not in whitelist!');
+        }
+        try {
+            await this.#query(deleteContractsWhitelistQuery, [
+                contractAddress,
+                this.#gasTankId
+            ]);
+        } catch (err) {
+            throw new Error(err as string);
+        }
+    }
+
     async addToScwWhitelist(contractAddress: string): Promise<void> {
         if (await this.isInWhiteList(contractAddress)) return;
         try {
@@ -46,6 +62,7 @@ export default class QuestbookAuthorizer implements BaseAuthorizer {
             throw new Error(err as string);
         }
     }
+
     async addAuthorizedUser(address: string) {
         if (await this.doesAddressExist(address)) {
             throw new Error(

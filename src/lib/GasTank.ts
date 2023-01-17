@@ -187,6 +187,22 @@ export class GasTank {
         }
     }
 
+    async addToWhiteList(contractAddress: string): Promise<void> {
+        try {
+            await this.authorizer.addToScwWhitelist(contractAddress);
+        } catch (e) {
+            throw new Error(e as string);
+        }
+    }
+
+    async removeFromWhiteList(contractAddress: string): Promise<void> {
+        try {
+            await this.authorizer.removeContractFromWhitelist(contractAddress);
+        } catch (e) {
+            throw new Error(e as string);
+        }
+    }
+
     async updateGasTankProviderUrl(newProviderUrl: string) {
         if (this.loadRelayer) {
             await this.readyPromise;

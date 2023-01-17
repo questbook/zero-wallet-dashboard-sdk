@@ -8,7 +8,8 @@ CREATE TABLE IF NOT EXISTS projects ( \
     name VARCHAR ( 256 ) NOT NULL, \
     created_at TIMESTAMPTZ NOT NULL, \
     owner_scw VARCHAR ( 70 ) NOT NULL, \
-    allowed_origins VARCHAR ( 256 ) ARRAY NOT NULL \
+    allowed_origins VARCHAR ( 256 ) ARRAY NOT NULL, \
+    UNIQUE (owner_scw, name) \
 ); \
 ';
 
@@ -23,7 +24,7 @@ CREATE TABLE IF NOT EXISTS gas_tanks ( \
     provider_url VARCHAR ( 256 ) NOT NULL, \
     funding_key BIGINT NOT NULL, \
     FOREIGN KEY (project_id) \
-      REFERENCES projects (project_id), \
+      REFERENCES projects (project_id) ON DELETE CASCADE, \
     UNIQUE (project_id, chain_id) \
 ); \
 ';
@@ -37,7 +38,8 @@ CREATE TABLE IF NOT EXISTS gasless_login ( \
     expiration BIGINT NOT NULL, \
     gas_tank_id BIGINT NOT NULL, \
     FOREIGN KEY (gas_tank_id) \
-      REFERENCES gas_tanks (gas_tank_id) \
+      REFERENCES gas_tanks (gas_tank_id) ON DELETE CASCADE, \
+    UNIQUE (gas_tank_id, address) \
 ); \
 ';
 
@@ -48,7 +50,7 @@ CREATE TABLE IF NOT EXISTS contracts_whitelist ( \
     address VARCHAR ( 70 ) NOT NULL, \
     gas_tank_id BIGINT NOT NULL, \
     FOREIGN KEY (gas_tank_id) \
-      REFERENCES gas_tanks (gas_tank_id), \
+      REFERENCES gas_tanks (gas_tank_id) ON DELETE CASCADE, \
     UNIQUE (gas_tank_id, address) \
 ); \
 ';
@@ -112,3 +114,5 @@ export const updateGasTankQuery =
 // delete
 export const deleteProjectQuery =
     'DELETE FROM projects CASCADE WHERE project_id = $1';
+export const deleteContractsWhitelistQuery =
+    'DELETE FROM contracts_whitelist WHERE address = $1 AND gas_tank_id = $2 ;';
