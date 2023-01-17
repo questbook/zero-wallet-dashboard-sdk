@@ -104,7 +104,7 @@ describe('ProjectManager', () => {
         );
         await updatedProject.readyPromise;
 
-        expect(updatedProject).toEqual(
+        expect(project).toEqual(
             expect.objectContaining({
                 owner: mockProject1.ownerScw,
                 name: newName,
@@ -123,6 +123,49 @@ describe('ProjectManager', () => {
         );
     });
 
+    test('update gasTank provider url', async () => {
+        const { projectId } = await constants.projectsManager.addProject(
+            mockProject1.name,
+            mockProject1.ownerScw,
+            mockProject1.allowedOrigins
+        );
+        const project = await constants.projectsManager.getProjectById(
+            projectId!
+        );
+
+        await project.addGasTank(gasTankProps, gasTankWhiteList);
+
+        const gasTank = await project.loadAndGetGasTankByChainId(
+            gasTankProps.chainId,
+            false
+        );
+        createdGasTanks.push(gasTank);
+
+        const newProviderURL =
+            'https://eth-goerli.g.alchemy.com/v2/yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy';
+        await gasTank.updateGasTankProviderUrl(newProviderURL);
+
+        const updatedGasTank = await project.loadAndGetGasTankByChainId(
+            gasTankProps.chainId,
+            false
+        );
+        createdGasTanks.push(updatedGasTank);
+
+        expect(gasTank).toEqual(
+            expect.objectContaining({
+                chainId: `${gasTankProps.chainId}`,
+                providerURL: newProviderURL
+            })
+        );
+
+        expect(updatedGasTank).toEqual(
+            expect.objectContaining({
+                chainId: `${gasTankProps.chainId}`,
+                providerURL: newProviderURL
+            })
+        );
+    });
+
     test('project has a gas tank', async () => {
         const project = await constants.projectsManager.addProject(
             mockProject2.name,
@@ -134,10 +177,9 @@ describe('ProjectManager', () => {
 
         // By chain id
         const gasTankByChainId = await project.loadAndGetGasTankByChainId(
-            gasTankProps.chainId
+            gasTankProps.chainId,
+            false
         );
-        // eslint-disable-next-line @typescript-eslint/no-empty-function
-        gasTankByChainId.readyPromise.catch(() => {});
         createdGasTanks.push(gasTankByChainId);
         expect(gasTankByChainId).toBeInstanceOf(GasTank);
 
@@ -165,10 +207,9 @@ describe('ProjectManager', () => {
 
         await project.addGasTank(gasTankProps, gasTankWhiteList);
         const gasTank = await project.loadAndGetGasTankByChainId(
-            gasTankProps.chainId
+            gasTankProps.chainId,
+            false
         );
-        // eslint-disable-next-line @typescript-eslint/no-empty-function
-        gasTank.readyPromise.catch(() => {});
         createdGasTanks.push(gasTank);
 
         try {
@@ -186,5 +227,4 @@ describe('ProjectManager', () => {
             expect(message).toBe('gas tank chain id should be unique');
         }
     });
-
 });

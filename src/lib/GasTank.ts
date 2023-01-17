@@ -1,6 +1,7 @@
 import { Pool } from 'pg';
 
 import { SupportedChainId } from '../constants/chains';
+import { updateGasTankQuery } from '../constants/database';
 import {
     BuildExecTransactionType,
     BuildTransactionParams,
@@ -19,15 +20,23 @@ export class GasTank {
     createdAt: string;
     fundingKey: number;
     readyPromise: Promise<void>;
+    providerURL: string;
+    loadRelayer: boolean;
+    gasTankId: string;
 
     // private fields
+    #pool: Pool;
     #relayer: BiconomyRelayer; // We can simply swap out biconomy by using a different relayer
     authorizer: QuestbookAuthorizer; // We can change the authorizer by simply swapping out the QuestbookAuthorizer
 
-    constructor(gasTank: GasTankProps, pool: Pool) {
+    constructor(gasTank: GasTankProps, pool: Pool, loadRelayer = true) {
         this.createdAt = gasTank.createdAt;
         this.chainId = gasTank.chainId;
         this.fundingKey = gasTank.fundingKey;
+        this.#pool = pool;
+        this.providerURL = gasTank.providerURL;
+        this.loadRelayer = loadRelayer;
+        this.gasTankId = gasTank.gasTankId;
         this.#relayer = new BiconomyRelayer({
             chainId: gasTank.chainId,
             apiKey: gasTank.apiKey,
@@ -35,6 +44,10 @@ export class GasTank {
         });
         this.authorizer = new QuestbookAuthorizer(gasTank.gasTankId, pool);
         this.readyPromise = this.#relayer.biconomyLoading;
+        if (!loadRelayer) {
+            // eslint-disable-next-line @typescript-eslint/no-empty-function
+            this.readyPromise.catch(() => {});
+        }
     }
     async addAuthorizedUser(address: string) {
         try {
@@ -172,6 +185,18 @@ export class GasTank {
         } catch (e) {
             throw new Error(e as string);
         }
+    }
+
+    async updateGasTankProviderUrl(newProviderUrl: string) {
+        if (this.loadRelayer) {
+            await this.readyPromise;
+        }
+        await this.#pool.query(updateGasTankQuery, [
+            newProviderUrl,
+            this.gasTankId
+        ]);
+
+        this.providerURL = newProviderUrl;
     }
 
     public toString(): string {

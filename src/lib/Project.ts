@@ -180,7 +180,10 @@ export default class Project {
         this.allowedOrigins = newAllowedOrigins;
     }
 
-    async loadAndGetGasTankByChainId(chainId: number): Promise<GasTank> {
+    async loadAndGetGasTankByChainId(
+        chainId: number,
+        loadRelayer = true
+    ): Promise<GasTank> {
         await this.readyPromise;
         const { rows } = await this.#pool.query<GasTankProps>(
             getGasTankByChainIdQuery,
@@ -193,7 +196,7 @@ export default class Project {
             ...rows[0],
             fundingKey: +rows[0].fundingKey
         };
-        const gasTank = new GasTank(gasTankProps, this.#pool);
+        const gasTank = new GasTank(gasTankProps, this.#pool, loadRelayer);
         return gasTank;
     }
 

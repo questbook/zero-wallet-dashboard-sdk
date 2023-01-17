@@ -89,9 +89,9 @@ export const addGaslessLoginQuery =
 export const getProjectsByOwnerQuery =
     'SELECT * FROM projects WHERE owner_scw = $1';
 export const getGasTanksByProjectIdQuery =
-    'SELECT api_key as "apiKey", chain_id as "chainId", provider_url as "providerURL", created_at as "createdAt", funding_key as "fundingKey" FROM gas_tanks WHERE project_id = $1';
+    'SELECT gas_tank_id as "gasTankId", api_key as "apiKey", chain_id as "chainId", provider_url as "providerURL", created_at as "createdAt", funding_key as "fundingKey" FROM gas_tanks WHERE project_id = $1';
 export const getGasTankByChainIdQuery =
-    'SELECT api_key as "apiKey", chain_id as "chainId", provider_url as "providerURL", created_at as "createdAt", funding_key as "fundingKey" FROM gas_tanks WHERE project_id = $1 AND chain_id = $2';
+    'SELECT gas_tank_id as "gasTankId", api_key as "apiKey", chain_id as "chainId", provider_url as "providerURL", created_at as "createdAt", funding_key as "fundingKey" FROM gas_tanks WHERE project_id = $1 AND chain_id = $2';
 
 export const getGasTanksByProjectIdRaw =
     ' \
@@ -106,6 +106,8 @@ export const getGasTanksByProjectIdRaw =
 // update
 export const updateProjectNameAndAllowedOriginsQuery =
     'UPDATE projects SET name = $1, allowed_origins = $2 WHERE project_id = $3';
+export const updateGasTankQuery =
+    'UPDATE gas_tanks SET provider_url = $1 WHERE gas_tank_id = $2';
 
 // delete
 export const deleteProjectQuery =
