@@ -57,7 +57,7 @@ function isNativeProjectType(obj: any): obj is fileDoc['project'] {
     let isTypeCorrect = true;
     if (typeof obj?.name !== 'string') isTypeCorrect = false;
     if (typeof obj?.ownerScw !== 'string') isTypeCorrect = false;
-    if (isListOfStrings(obj?.allowedOrigins)) isTypeCorrect = false;
+    if (!isListOfStrings(obj?.allowedOrigins)) isTypeCorrect = false;
 
     if (!isTypeCorrect) {
         throw new Error(
@@ -84,6 +84,7 @@ export function isFileDoc(obj: any): obj is fileDoc {
         throw new Error('yml file does not match the required structure');
     }
     try {
+        console.log(obj.project);
         isDatabaseConfig(obj.databaseConfig);
         isAuthToken(obj.authToken);
         isNativeProjectType(obj.project);
