@@ -2,15 +2,13 @@
 import { DatabaseConfig, fileDoc } from '../types';
 import { GasTankProps } from '../types';
 
-export function isGasTankProps(obj: any): obj is GasTankProps {
+function isGasTankNative(obj: any): obj is GasTankProps {
     let isTypeCorrect = true;
-    if (typeof obj?.name !== 'string') isTypeCorrect = false;
     if (typeof obj?.apiKey !== 'string') isTypeCorrect = false;
-    if (typeof obj?.name !== 'string') isTypeCorrect = false;
-    if (typeof obj?.chainId !== 'string' && typeof obj?.chainId !== 'number')
-        isTypeCorrect = false;
+    if (typeof obj?.chainId !== 'number') isTypeCorrect = false;
     if (typeof obj?.providerURL !== 'string') isTypeCorrect = false;
-    if (!obj?.whiteList?.length) isTypeCorrect = false;
+    if (typeof obj?.fundingKey !== 'number') isTypeCorrect = false;
+    if (isListOfStrings(!obj?.whiteList)) isTypeCorrect = false;
     if (!isTypeCorrect) {
         throw new Error(
             'gasTank in yml file does not match the required structure'
@@ -42,6 +40,45 @@ function isDatabaseConfig(obj: any): obj is DatabaseConfig {
     return true;
 }
 
+function isListOfStrings(obj: any): obj is string[] {
+    let isTypeCorrect = false;
+    if (Array.isArray(obj)) {
+        isTypeCorrect = true;
+        obj.forEach((item) => {
+            if (typeof item !== 'string') {
+                isTypeCorrect = false;
+            }
+        });
+    }
+    return isTypeCorrect;
+}
+
+function isNativeProjectType(obj: any): obj is fileDoc['project'] {
+    let isTypeCorrect = true;
+    if (typeof obj?.name !== 'string') isTypeCorrect = false;
+    if (typeof obj?.ownerScw !== 'string') isTypeCorrect = false;
+    if (isListOfStrings(obj?.allowedOrigins)) isTypeCorrect = false;
+
+    if (!isTypeCorrect) {
+        throw new Error(
+            'native project in yml file does not match the required structure'
+        );
+    }
+    return true;
+}
+
+function isNativeGasTanksType(obj: any): obj is fileDoc['gasTanks'] {
+    if (typeof obj !== 'object') {
+        throw new Error(
+            'gasTanks in yml file does not match the required structure'
+        );
+    }
+    Object.values(obj).forEach((gasTank) => {
+        isGasTankNative(gasTank);
+    });
+    return true;
+}
+
 export function isFileDoc(obj: any): obj is fileDoc {
     if (obj?.authToken === undefined || obj?.databaseConfig === undefined) {
         throw new Error('yml file does not match the required structure');
@@ -49,6 +86,8 @@ export function isFileDoc(obj: any): obj is fileDoc {
     try {
         isDatabaseConfig(obj.databaseConfig);
         isAuthToken(obj.authToken);
+        isNativeProjectType(obj.project);
+        isNativeGasTanksType(obj.gasTanks);
     } catch (e) {
         throw new Error(e as string);
     }

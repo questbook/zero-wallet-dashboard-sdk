@@ -30,6 +30,8 @@ export type GasTanksType = Array<GasTankProps>;
 export type fileDoc = {
     databaseConfig: DatabaseConfig;
     authToken: string;
+    project: NativeProjectType;
+    gasTanks: { [key: string]: NativeGasTankType };
 };
 
 export type SendGaslessTransactionParams = BiconomySendGaslessTransactionParams; // @TODO-update
@@ -60,6 +62,20 @@ export type SignedMessage = {
     r: string;
     s: string;
     v: number;
+};
+
+export type NativeProjectType = {
+    name: string;
+    ownerScw: string;
+    allowedOrigins: string[];
+};
+
+export type NativeGasTankType = {
+    apiKey: string;
+    chainId: number;
+    providerURL: string;
+    fundingKey: number;
+    whitelist: string;
 };
 
 export type ProjectRawType = {
