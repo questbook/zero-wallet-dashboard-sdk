@@ -8,18 +8,16 @@ import {
     createContractsWhitelistTable,
     createGaslessLoginTableQuery,
     createGasTanksTableQuery,
-    createIndexForContractsWhitelistTable,
-    createIndexForGasLessLoginTable,
-    createIndexForGasTanksTable,
     createProjectsTableQuery,
     deleteProjectQuery,
     dropContractsWhitelistTable,
     dropGaslessLoginTableQuery,
     dropGasTanksTableQuery,
     dropProjectsTableQuery,
-    getProjectsByOwnerQuery
+    getProjectsByOwnerQuery,
+    indices
 } from '../constants/database';
-import { fileDoc, ProjectRawType } from '../types';
+import { fileDoc, NativeGasTankType, NativeProjectType, ProjectRawType } from '../types';
 import { isFileDoc } from '../utils/typeChecker';
 
 import Project from './Project';
@@ -29,6 +27,8 @@ export default class ProjectsManager {
     #authToken: string;
     readyPromise: Promise<void>;
     isTesting: boolean;
+    nativeProject: NativeProjectType;
+    nativeGasTanks: { [key: string]: NativeGasTankType };
 
     /**
      *
@@ -49,6 +49,8 @@ export default class ProjectsManager {
             throw new Error(e as string);
         }
         this.isTesting = isTesting || false;
+        this.nativeProject = doc.project;
+        this.nativeGasTanks = doc.gasTanks;
         this.#authToken = doc.authToken;
         const parsedDataBaseConfig = {
             ...doc.databaseConfig,
@@ -81,21 +83,10 @@ export default class ProjectsManager {
     }
 
     async #createIndices() {
-        try {
-            await this.#pool.query(createIndexForGasTanksTable);
-        } catch (err) {
-            console.log('error creating index in gas_tanks table');
-        }
-        try {
-            await this.#pool.query(createIndexForGasLessLoginTable);
-        } catch (err) {
-            console.log('error creating index in gasless_login table');
-        }
-        try {
-            await this.#pool.query(createIndexForContractsWhitelistTable);
-        } catch (err) {
-            console.log('error creating index in whitelist table');
-        }
+        const queryPromises = indices.map((query) =>
+            this.#pool.query(query)
+        );
+        await Promise.allSettled(queryPromises);
     }
 
     async endConnection() {
@@ -109,7 +100,23 @@ export default class ProjectsManager {
 
         await this.#createTables();
         await this.#createIndices();
+
+        await this.#addNativeEntries();
     }
+
+    async #addNativeEntries() {
+        await this.#addNativeProject();
+        await this.#addNativeGasTanks();
+    }
+
+    // async #addNativeProject() {
+    //     this.#pool.query(addNativeProjectQuery, [
+    //     ]);
+    // }
+
+    // async #addNativeGasTanks() {
+        
+    // }
 
     async addProject(
         name: string,

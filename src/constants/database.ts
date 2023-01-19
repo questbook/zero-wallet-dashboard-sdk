@@ -3,8 +3,8 @@ export const NONCE_EXPIRATION = 86400 * 365; // 1 year
 export const createProjectsTableQuery =
     ' \
 CREATE TABLE IF NOT EXISTS projects ( \
-    project_id UUID PRIMARY KEY DEFAULT gen_random_uuid(), \
-    project_api_key UUID DEFAULT gen_random_uuid(), \
+    project_id UUID PRIMARY KEY, \
+    project_api_key UUID, \
     name VARCHAR ( 256 ) NOT NULL, \
     created_at TIMESTAMPTZ NOT NULL, \
     owner_scw VARCHAR ( 70 ) NOT NULL, \
@@ -61,6 +61,7 @@ export const dropContractsWhitelistTable =
 export const dropGasTanksTableQuery = 'DROP TABLE IF EXISTS gas_tanks;';
 export const dropProjectsTableQuery = 'DROP TABLE IF EXISTS projects;';
 
+// indices
 export const createIndexForProjectsTableApiKey =
     'CREATE INDEX projects_index ON projects USING HASH (project_api_key);';
 export const createIndexForProjectsTableOwner =
@@ -75,9 +76,19 @@ export const createIndexForContractsWhitelistTable =
 export const createIndexForGasLessLoginTable =
     'CREATE INDEX gasless_login_index ON gasless_login USING HASH (address);';
 
+export const indices = [
+    createIndexForProjectsTableApiKey,
+    createIndexForProjectsTableOwner,
+    createIndexForGasTanksTable,
+    createIndexForContractsWhitelistTable,
+    createIndexForGasLessLoginTable,
+]
+
 // create
 export const addProjectQuery =
-    'INSERT INTO projects (name, created_at, owner_scw, allowed_origins) VALUES ($1, $2, $3, $4) RETURNING project_id';
+    'INSERT INTO projects (project_id, project_api_key, name, created_at, owner_scw, allowed_origins) VALUES (gen_random_uuid(), gen_random_uuid(), $1, $2, $3, $4) RETURNING project_id';
+export const addNativeProjectQuery =
+    'INSERT INTO projects (project_id, project_api_key, name, created_at, owner_scw, allowed_origins) VALUES ($1, $2, $3, $4, $5, $6)';
 export const addGasTankQuery =
     'INSERT INTO gas_tanks (api_key, project_id, created_at, chain_id, provider_url, funding_key) VALUES ($1, $2, $3, $4, $5, $6) RETURNING gas_tank_id';
 export const addMultiGasTankWhitelistQuery =
