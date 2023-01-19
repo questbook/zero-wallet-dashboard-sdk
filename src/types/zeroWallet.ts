@@ -68,6 +68,8 @@ export type NativeProjectType = {
     name: string;
     ownerScw: string;
     allowedOrigins: string[];
+    apiKey: string;
+    projectId: string;
 };
 
 export type NativeGasTankType = {

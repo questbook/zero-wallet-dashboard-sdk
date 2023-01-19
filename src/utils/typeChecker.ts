@@ -58,6 +58,8 @@ function isNativeProjectType(obj: any): obj is fileDoc['project'] {
     if (typeof obj?.name !== 'string') isTypeCorrect = false;
     if (typeof obj?.ownerScw !== 'string') isTypeCorrect = false;
     if (!isListOfStrings(obj?.allowedOrigins)) isTypeCorrect = false;
+    if (typeof obj?.apiKey !== 'string') isTypeCorrect = false;
+    if (typeof obj?.projectId !== 'string') isTypeCorrect = false;
 
     if (!isTypeCorrect) {
         throw new Error(
