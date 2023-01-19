@@ -39,6 +39,28 @@ export class BiconomyRelayer implements BaseRelayer {
         } as InitBiconomyRelayerProps);
     }
 
+    static async getGasTankBalance(gasTankApiKey: string, authToken: string) {
+        const url = new URL(
+            'https://data.biconomy.io/api/v1/dapp/gas-tank-balance'
+        );
+        const requestOptions = {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                authToken: authToken,
+                apiKey: gasTankApiKey
+            }
+        };
+        const data = await fetch(url, requestOptions);
+        console.log(data);
+        const {
+            data: { balance }
+        } = (await data.json()) as {
+            data: { balance: number };
+        };
+        return balance;
+    }
+
     static async createGasTank(
         gasTank: NewGasTankParams,
         name: string,

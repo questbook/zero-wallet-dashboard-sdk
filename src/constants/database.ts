@@ -97,7 +97,7 @@ export const getGasTankByChainIdQuery =
 
 export const getGasTanksByProjectIdRaw =
     ' \
-    SELECT gas_tank_id, project_id, gt.created_at, chain_id, provider_url, funding_key, ARRAY_AGG (address) whitelist \
+    SELECT gas_tank_id, project_id, api_key, gt.created_at, chain_id, provider_url, funding_key, ARRAY_AGG (address) whitelist \
     FROM projects \
     RIGHT JOIN gas_tanks gt USING(project_id) \
     LEFT JOIN contracts_whitelist USING(gas_tank_id) \

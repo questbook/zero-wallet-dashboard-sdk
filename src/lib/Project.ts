@@ -202,11 +202,19 @@ export default class Project {
 
     async getGasTanksRaw(): Promise<GasTankRawType[]> {
         await this.readyPromise;
-        const { rows } = await this.#pool.query<GasTankRawType>(
-            getGasTanksByProjectIdRaw,
-            [this.projectId]
-        );
-        return rows;
+
+        const { rows } = await this.#pool.query<
+            Omit<GasTankRawType, 'balance'> & { api_key: string }
+        >(getGasTanksByProjectIdRaw, [this.projectId]);
+        const newRowsPromises = rows.map(async (row) => {
+            return {
+                ...row,
+                api_key: undefined,
+                balance: (await BiconomyRelayer.getGasTankBalance(row.api_key, this.#authToken)).toString()
+            };
+        });
+        const newRows = await Promise.all(newRowsPromises);
+        return newRows
     }
 
     async getLoadedGasTank(chainId: string): Promise<GasTank> {

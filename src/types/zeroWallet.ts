@@ -95,6 +95,7 @@ export type GasTankRawType = {
     provider_url: string;
     funding_key: string;
     whitelist: string[];
+    balance: string;
 };
 
 export type NewGasTankParams = {
