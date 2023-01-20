@@ -4,11 +4,14 @@ import { load } from 'js-yaml';
 import { Pool } from 'pg';
 
 import {
+    addNativeGasTanksQuery,
+    addNativeProjectQuery,
     addProjectQuery,
     createContractsWhitelistTable,
     createGaslessLoginTableQuery,
     createGasTanksTableQuery,
     createProjectsTableQuery,
+    deleteNativeGasTanksQuery,
     deleteProjectQuery,
     dropContractsWhitelistTable,
     dropGaslessLoginTableQuery,
@@ -17,7 +20,12 @@ import {
     getProjectsByOwnerQuery,
     indices
 } from '../constants/database';
-import { fileDoc, NativeGasTankType, NativeProjectType, ProjectRawType } from '../types';
+import {
+    fileDoc,
+    NativeGasTankType,
+    NativeProjectType,
+    ProjectRawType
+} from '../types';
 import { isFileDoc } from '../utils/typeChecker';
 
 import Project from './Project';
@@ -83,9 +91,7 @@ export default class ProjectsManager {
     }
 
     async #createIndices() {
-        const queryPromises = indices.map((query) =>
-            this.#pool.query(query)
-        );
+        const queryPromises = indices.map((query) => this.#pool.query(query));
         await Promise.allSettled(queryPromises);
     }
 
@@ -109,14 +115,105 @@ export default class ProjectsManager {
         await this.#addNativeGasTanks();
     }
 
-    // async #addNativeProject() {
-    //     this.#pool.query(addNativeProjectQuery, [
-    //     ]);
-    // }
+    async #doesNativeProjectExist(): Promise<boolean> {
+        const { rows } = await this.#pool.query<ProjectRawType>(
+            getProjectsByOwnerQuery,
+            [this.nativeProject.ownerScw]
+        );
 
-    // async #addNativeGasTanks() {
+        if (rows.length === 0) {
+            return false;
+        }
+
+        if (rows.length > 1) {
+            throw new Error('there are more than one project with the owner');
+        }
+
+        const project = rows[0];
+        if (
+            project.project_api_key !== this.nativeProject.apiKey ||
+            project.name !== this.nativeProject.name ||
+            project.allowed_origins !== this.nativeProject.allowedOrigins ||
+            project.project_id !== this.nativeProject.projectId
+        ) {
+            throw new Error(
+                'the native project already exists but with different values'
+            );
+        }
+
+        return true;
+    }
+
+    async #addNativeProject() {
+        const now = new Date();
+
+        if (await this.#doesNativeProjectExist()) return;
         
-    // }
+
+        await this.#pool.query(addNativeProjectQuery, [
+            this.nativeProject.projectId,
+            this.nativeProject.apiKey,
+            this.nativeProject.name,
+            now,
+            this.nativeProject.ownerScw,
+            this.nativeProject.allowedOrigins
+        ]);
+    }
+
+    async #removeAllNativeGasTanks() {
+        await this.#pool.query(deleteNativeGasTanksQuery, [this.nativeProject.projectId]);
+    }
+
+    #getNativeGasTanksLists() {
+        const now = new Date();
+        const apiKeyList = Object.keys(this.nativeGasTanks).map(
+            (key) => this.nativeGasTanks[key].apiKey
+        );
+        const projectIdList = Array<string>(apiKeyList.length).fill(
+            this.nativeProject.projectId
+        );
+        const createdAtList = Array<Date>(apiKeyList.length).fill(now);
+        const chainIdList = Object.keys(this.nativeGasTanks).map(
+            (key) => this.nativeGasTanks[key].chainId
+        );
+        const providerURLList = Object.keys(this.nativeGasTanks).map(
+            (key) => this.nativeGasTanks[key].providerURL
+        );
+        const fundingKeyList = Object.keys(this.nativeGasTanks).map(
+            (key) => this.nativeGasTanks[key].fundingKey
+        );
+
+        return {
+            apiKeyList,
+            projectIdList,
+            createdAtList,
+            chainIdList,
+            providerURLList,
+            fundingKeyList
+        };
+    }
+
+    async #addNativeGasTanks() {
+        await this.#removeAllNativeGasTanks();
+        
+        const {
+            apiKeyList,
+            projectIdList,
+            createdAtList,
+            chainIdList,
+            providerURLList,
+            fundingKeyList
+        } = this.#getNativeGasTanksLists();
+
+        await this.#pool.query(addNativeGasTanksQuery, [
+            apiKeyList,
+            projectIdList,
+            createdAtList,
+            chainIdList,
+            providerURLList,
+            fundingKeyList
+        ]);
+    }
 
     async addProject(
         name: string,
