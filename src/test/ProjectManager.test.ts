@@ -26,7 +26,7 @@ const gasTankProps = {
 };
 
 const gasTankWhiteList = ['0x123', '0x456'];
-const createdGasTanks: GasTank[] = [];
+const createdEntities: (GasTank | Project)[] = [];
 
 const constants: {
     wallet: ethers.Wallet;
@@ -38,20 +38,73 @@ const constants: {
 };
 
 afterAll(async () => {
-    const gasTanksReady = createdGasTanks.map(async (gasTank) => {
-        await gasTank.readyPromise;
+    const entitiesReady = createdEntities.map(async (entity) => {
+        await entity.readyPromise;
     });
     // Biconomy throws an error if the gas tank is empty.
-    await Promise.allSettled(gasTanksReady);
+    await Promise.allSettled(entitiesReady);
 
     await constants.projectsManager.endConnection();
 });
 
 describe('ProjectManager', () => {
-    test('project manager created successfully with zero projects', async () => {
+    test('project manager created successfully with only native project', async () => {
         expect(constants.projectsManager).toBeInstanceOf(ProjectsManager);
         const count = await constants.projectsManager.getProjectsCount();
-        expect(count).toBe(0);
+        expect(count).toBe(1);
+    });
+
+    test('native project exists with filled gas tank', async () => {
+        const { projectId, name, allowedOrigins, ownerScw, apiKey } =
+            constants.projectsManager.nativeProject;
+
+        const project = await constants.projectsManager.getProjectById(
+            projectId
+        );
+        await project.readyPromise;
+        expect(project).toBeInstanceOf(Project);
+        expect(project).toEqual(
+            expect.objectContaining({
+                name,
+                owner: ownerScw,
+                allowedOrigins,
+                projectId,
+                apiKey
+            })
+        );
+    });
+
+    test('native project has a gas tank', async () => {
+        const { projectId } = constants.projectsManager.nativeProject;
+        const { chainId, providerURL, fundingKey } =
+            constants.projectsManager.nativeGasTanks['test'];
+        const project = await constants.projectsManager.getProjectById(
+            projectId
+        );
+        await project.readyPromise;
+        const gasTank = await project.loadAndGetGasTankByChainId(
+            gasTankProps.chainId,
+            false
+        );
+        createdEntities.push(gasTank);
+        expect(gasTank).toBeInstanceOf(GasTank);
+        expect(gasTank).toEqual(
+            expect.objectContaining({
+                chainId: chainId.toString(),
+                providerURL,
+                fundingKey
+            })
+        );
+    });
+
+    test('native gas tank has a positive balance', async () => {
+        const { projectId } = constants.projectsManager.nativeProject;
+        const project = await constants.projectsManager.getProjectById(
+            projectId
+        );
+        const { balance } = (await project.getGasTanksRaw())[0];
+
+        expect(parseFloat(balance)).toBeGreaterThan(0);
     });
 
     test('project manager adds then removes a project', async () => {
@@ -65,8 +118,6 @@ describe('ProjectManager', () => {
         );
         await project.readyPromise;
 
-        const count = await constants.projectsManager.getProjectsCount();
-        expect(count).toBe(1);
         expect(project).toBeInstanceOf(Project);
         expect(project).toEqual(
             expect.objectContaining({
@@ -78,8 +129,15 @@ describe('ProjectManager', () => {
         );
 
         await constants.projectsManager.removeProject(projectId!);
-        const countAgain = await constants.projectsManager.getProjectsCount();
-        expect(countAgain).toBe(0);
+
+        try {
+            const project = await constants.projectsManager.getProjectById(
+                projectId!
+            );
+            await project.readyPromise;
+            throw new Error('Project should not exist');
+            // eslint-disable-next-line no-empty
+        } catch (e) {}
     });
 
     test('update project name and allowed origins', async () => {
@@ -141,7 +199,7 @@ describe('ProjectManager', () => {
             gasTankProps.chainId,
             false
         );
-        createdGasTanks.push(gasTank);
+        createdEntities.push(gasTank);
 
         const newContractAddress = '0x789';
 
@@ -193,7 +251,7 @@ describe('ProjectManager', () => {
             gasTankProps.chainId,
             false
         );
-        createdGasTanks.push(gasTank);
+        createdEntities.push(gasTank);
 
         const newProviderURL =
             'https://eth-goerli.g.alchemy.com/v2/yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy';
@@ -203,7 +261,7 @@ describe('ProjectManager', () => {
             gasTankProps.chainId,
             false
         );
-        createdGasTanks.push(updatedGasTank);
+        createdEntities.push(updatedGasTank);
 
         expect(gasTank).toEqual(
             expect.objectContaining({
@@ -236,7 +294,7 @@ describe('ProjectManager', () => {
             gasTankProps.chainId,
             false
         );
-        createdGasTanks.push(gasTankByChainId);
+        createdEntities.push(gasTankByChainId);
         expect(gasTankByChainId).toBeInstanceOf(GasTank);
 
         // getting all gas tanks raw
@@ -268,7 +326,7 @@ describe('ProjectManager', () => {
             gasTankProps.chainId,
             false
         );
-        createdGasTanks.push(gasTank);
+        createdEntities.push(gasTank);
 
         try {
             await project.addGasTank(gasTankProps, gasTankWhiteList);
