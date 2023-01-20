@@ -91,6 +91,8 @@ export const addNativeProjectQuery =
     'INSERT INTO projects (project_id, project_api_key, name, created_at, owner_scw, allowed_origins) VALUES ($1, $2, $3, $4, $5, $6)';
 export const addGasTankQuery =
     'INSERT INTO gas_tanks (api_key, project_id, created_at, chain_id, provider_url, funding_key) VALUES ($1, $2, $3, $4, $5, $6) RETURNING gas_tank_id';
+export const addNativeGasTanksQuery =
+    'INSERT INTO gas_tanks (api_key, project_id, created_at, chain_id, provider_url, funding_key) SELECT * FROM UNNEST ($1::VARCHAR[], $2::UUID[], $3::TIMESTAMPTZ[], $4::BIGINT[], $5::VARCHAR[], $6::BIGINT[])';
 export const addMultiGasTankWhitelistQuery =
     'INSERT INTO contracts_whitelist (address, gas_tank_id) SELECT * FROM UNNEST ($1::VARCHAR[], $2::BIGINT[])';
 export const addContractWhitelistQuery =
@@ -127,3 +129,5 @@ export const deleteProjectQuery =
     'DELETE FROM projects CASCADE WHERE project_id = $1';
 export const deleteContractsWhitelistQuery =
     'DELETE FROM contracts_whitelist WHERE address = $1 AND gas_tank_id = $2 ;';
+export const deleteNativeGasTanksQuery =
+    'DELETE FROM gas_tanks WHERE project_id = $1';
