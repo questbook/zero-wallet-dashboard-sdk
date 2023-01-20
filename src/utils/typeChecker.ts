@@ -86,7 +86,6 @@ export function isFileDoc(obj: any): obj is fileDoc {
         throw new Error('yml file does not match the required structure');
     }
     try {
-        console.log(obj.project);
         isDatabaseConfig(obj.databaseConfig);
         isAuthToken(obj.authToken);
         isNativeProjectType(obj.project);
