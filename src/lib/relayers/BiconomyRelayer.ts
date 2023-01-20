@@ -6,6 +6,7 @@ import {
     BiconomyRelayerProps,
     BiconomySendGaslessTransactionParams,
     BiconomyWalletClientType,
+    GasTankBalanceType,
     GasTankCreationResponse,
     InitBiconomyRelayerProps,
     NewGasTankParams,
@@ -51,14 +52,8 @@ export class BiconomyRelayer implements BaseRelayer {
                 apiKey: gasTankApiKey
             }
         };
-        const data = await fetch(url, requestOptions);
-        console.log(data);
-        const {
-            data: { balance }
-        } = (await data.json()) as {
-            data: { balance: number };
-        };
-        return balance;
+        const data: GasTankBalanceType = await (await fetch(url, requestOptions)).json();
+        return data.dappGasTankData.effectiveBalanceInStandardForm;
     }
 
     static async createGasTank(

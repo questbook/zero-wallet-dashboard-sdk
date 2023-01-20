@@ -131,3 +131,12 @@ export type GasTankCreationResponse = {
     apiKey: string;
     fundingKey: number;
 };
+
+export type GasTankBalanceType = {
+    dappGasTankData: {
+        effectiveBalanceInWei: number;
+        effectiveBalanceInStandardForm: number;
+        isBelowThreshold: boolean;
+        isInGracePeriod: boolean;
+    };
+};
