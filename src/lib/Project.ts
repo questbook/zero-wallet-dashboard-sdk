@@ -83,7 +83,7 @@ export default class Project {
         );
         const now = new Date();
         const gasTankId = (
-            await this.#pool.query(addGasTankQuery, [
+            await this.#pool.query<{gas_tank_id: string}>(addGasTankQuery, [
                 apiKey,
                 this.projectId,
                 now,
@@ -93,7 +93,7 @@ export default class Project {
             ])
         ).rows[0].gas_tank_id;
 
-        const gasTankIdList = Array(whiteList.length).fill(gasTankId);
+        const gasTankIdList = Array<string>(whiteList.length).fill(gasTankId);
         await this.#pool.query(addMultiGasTankWhitelistQuery, [
             whiteList,
             gasTankIdList
