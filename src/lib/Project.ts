@@ -83,7 +83,7 @@ export default class Project {
         );
         const now = new Date();
         const gasTankId = (
-            await this.#pool.query<{gas_tank_id: string}>(addGasTankQuery, [
+            await this.#pool.query<{ gas_tank_id: string }>(addGasTankQuery, [
                 apiKey,
                 this.projectId,
                 now,
@@ -210,11 +210,16 @@ export default class Project {
             return {
                 ...row,
                 api_key: undefined,
-                balance: (await BiconomyRelayer.getGasTankBalance(row.api_key, this.#authToken)).toString()
+                balance: (
+                    await BiconomyRelayer.getGasTankBalance(
+                        row.api_key,
+                        this.#authToken
+                    )
+                ).toString()
             };
         });
         const newRows = await Promise.all(newRowsPromises);
-        return newRows
+        return newRows;
     }
 
     async getLoadedGasTank(chainId: string): Promise<GasTank> {

@@ -148,7 +148,6 @@ export default class ProjectsManager {
         const now = new Date();
 
         if (await this.#doesNativeProjectExist()) return;
-        
 
         await this.#pool.query(addNativeProjectQuery, [
             this.nativeProject.projectId,
@@ -161,7 +160,9 @@ export default class ProjectsManager {
     }
 
     async #removeAllNativeGasTanks() {
-        await this.#pool.query(deleteNativeGasTanksQuery, [this.nativeProject.projectId]);
+        await this.#pool.query(deleteNativeGasTanksQuery, [
+            this.nativeProject.projectId
+        ]);
     }
 
     #getNativeGasTanksLists() {
@@ -195,7 +196,7 @@ export default class ProjectsManager {
 
     async #addNativeGasTanks() {
         await this.#removeAllNativeGasTanks();
-        
+
         const {
             apiKeyList,
             projectIdList,

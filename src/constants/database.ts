@@ -81,8 +81,8 @@ export const indices = [
     createIndexForProjectsTableOwner,
     createIndexForGasTanksTable,
     createIndexForContractsWhitelistTable,
-    createIndexForGasLessLoginTable,
-]
+    createIndexForGasLessLoginTable
+];
 
 // create
 export const addProjectQuery =

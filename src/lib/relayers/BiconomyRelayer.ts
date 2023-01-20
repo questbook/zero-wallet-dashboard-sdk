@@ -52,7 +52,9 @@ export class BiconomyRelayer implements BaseRelayer {
                 apiKey: gasTankApiKey
             }
         };
-        const data: GasTankBalanceType = await (await fetch(url, requestOptions)).json();
+        const data: GasTankBalanceType = await (
+            await fetch(url, requestOptions)
+        ).json();
         return data.dappGasTankData.effectiveBalanceInStandardForm;
     }
 
