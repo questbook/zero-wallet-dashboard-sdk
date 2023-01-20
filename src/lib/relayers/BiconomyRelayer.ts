@@ -1,4 +1,5 @@
 import { Biconomy } from '@biconomy/mexa';
+import axios from 'axios';
 import { ethers } from 'ethers';
 
 import { SupportedChainId } from '../../constants/chains';
@@ -41,9 +42,7 @@ export class BiconomyRelayer implements BaseRelayer {
     }
 
     static async getGasTankBalance(gasTankApiKey: string, authToken: string) {
-        const url = new URL(
-            'https://data.biconomy.io/api/v1/dapp/gas-tank-balance'
-        );
+        const url = 'https://data.biconomy.io/api/v1/dapp/gas-tank-balance';
         const requestOptions = {
             method: 'GET',
             headers: {
@@ -52,9 +51,10 @@ export class BiconomyRelayer implements BaseRelayer {
                 apiKey: gasTankApiKey
             }
         };
-        const data: GasTankBalanceType = await (
-            await fetch(url, requestOptions)
-        ).json();
+        const { data } = await axios.get<GasTankBalanceType>(
+            url,
+            requestOptions
+        );
         return data.dappGasTankData.effectiveBalanceInStandardForm;
     }
 
@@ -73,23 +73,21 @@ export class BiconomyRelayer implements BaseRelayer {
         });
 
         const requestOptions = {
-            method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
                 authToken: authToken
-            },
-            body: formData
+            }
         };
 
-        const res = await fetch(url, requestOptions);
-        const resJson = (await res.json()) as {
-            data: { apiKey: string; fundingKey: number };
-        };
+        const {
+            data: { data }
+        } = await axios.post<{ data: GasTankCreationResponse }>(
+            url,
+            formData,
+            requestOptions
+        );
 
-        return {
-            apiKey: resJson.data.apiKey,
-            fundingKey: resJson.data.fundingKey
-        };
+        return data;
     }
 
     async #waitForBiconomyWalletClient() {
