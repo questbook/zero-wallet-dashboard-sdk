@@ -7,17 +7,38 @@ import { GasTank } from '../lib/GasTank';
 import Project from '../lib/Project';
 import ProjectsManager from '../lib/ProjectsManager';
 
-const mockProject1 = {
-    name: 'testProject1',
-    ownerScw: '0x0000000000000000000000000000000000000000',
-    allowedOrigins: ['http://localhost:3000']
-};
-
-const mockProject2 = {
-    name: 'testProject2',
-    ownerScw: '0x0000000000000000000000000000000000000001',
-    allowedOrigins: ['http://localhost:3000']
-};
+const mockProjects = [
+    {
+        name: 'testProject1',
+        ownerScw: '0x0000000000000000000000000000000000000000',
+        allowedOrigins: ['http://localhost:3001']
+    },
+    {
+        name: 'testProject2',
+        ownerScw: '0x0000000000000000000000000000000000000001',
+        allowedOrigins: ['http://localhost:3002']
+    },
+    {
+        name: 'testProject3',
+        ownerScw: '0x0000000000000000000000000000000000000002',
+        allowedOrigins: ['http://localhost:3003']
+    },
+    {
+        name: 'testProject4',
+        ownerScw: '0x0000000000000000000000000000000000000004',
+        allowedOrigins: ['http://localhost:3004']
+    },
+    {
+        name: 'testProject5',
+        ownerScw: '0x0000000000000000000000000000000000000005',
+        allowedOrigins: ['http://localhost:3005']
+    },
+    {
+        name: 'testProject6',
+        ownerScw: '0x0000000000000000000000000000000000000006',
+        allowedOrigins: ['http://localhost:3006']
+    }
+];
 
 const gasTankProps = {
     chainId: 5,
@@ -108,10 +129,11 @@ describe('ProjectManager', () => {
     });
 
     test('project manager adds then removes a project', async () => {
+        const { name, ownerScw, allowedOrigins } = mockProjects[0];
         const { projectId } = await constants.projectsManager.addProject(
-            mockProject1.name,
-            mockProject1.ownerScw,
-            mockProject1.allowedOrigins
+            name,
+            ownerScw,
+            allowedOrigins
         );
         const project = await constants.projectsManager.getProjectById(
             projectId!
@@ -121,9 +143,9 @@ describe('ProjectManager', () => {
         expect(project).toBeInstanceOf(Project);
         expect(project).toEqual(
             expect.objectContaining({
-                name: mockProject1.name,
-                owner: mockProject1.ownerScw,
-                allowedOrigins: mockProject1.allowedOrigins,
+                name: name,
+                owner: ownerScw,
+                allowedOrigins: allowedOrigins,
                 projectId
             })
         );
@@ -141,10 +163,11 @@ describe('ProjectManager', () => {
     });
 
     test('update project name and allowed origins', async () => {
+        const { name, ownerScw, allowedOrigins } = mockProjects[1];
         const { projectId } = await constants.projectsManager.addProject(
-            mockProject1.name,
-            mockProject1.ownerScw,
-            mockProject1.allowedOrigins
+            name,
+            ownerScw,
+            allowedOrigins
         );
         const project = await constants.projectsManager.getProjectById(
             projectId!
@@ -164,7 +187,7 @@ describe('ProjectManager', () => {
 
         expect(project).toEqual(
             expect.objectContaining({
-                owner: mockProject1.ownerScw,
+                owner: ownerScw,
                 name: newName,
                 allowedOrigins: newAllowedOrigins,
                 projectId
@@ -173,7 +196,7 @@ describe('ProjectManager', () => {
 
         expect(updatedProject).toEqual(
             expect.objectContaining({
-                owner: mockProject1.ownerScw,
+                owner: ownerScw,
                 name: newName,
                 allowedOrigins: newAllowedOrigins,
                 projectId
@@ -184,10 +207,11 @@ describe('ProjectManager', () => {
     });
 
     test('add then removes from contract whitelist', async () => {
+        const { name, ownerScw, allowedOrigins } = mockProjects[2];
         const { projectId } = await constants.projectsManager.addProject(
-            mockProject1.name,
-            mockProject1.ownerScw,
-            mockProject1.allowedOrigins
+            name,
+            ownerScw,
+            allowedOrigins
         );
         const project = await constants.projectsManager.getProjectById(
             projectId!
@@ -236,10 +260,11 @@ describe('ProjectManager', () => {
     });
 
     test('update gasTank provider url', async () => {
+        const { name, ownerScw, allowedOrigins } = mockProjects[3];
         const { projectId } = await constants.projectsManager.addProject(
-            mockProject1.name,
-            mockProject1.ownerScw,
-            mockProject1.allowedOrigins
+            name,
+            ownerScw,
+            allowedOrigins
         );
         const project = await constants.projectsManager.getProjectById(
             projectId!
@@ -281,10 +306,11 @@ describe('ProjectManager', () => {
     });
 
     test('project has a gas tank', async () => {
+        const { name, ownerScw, allowedOrigins } = mockProjects[4];
         const project = await constants.projectsManager.addProject(
-            mockProject2.name,
-            mockProject2.ownerScw,
-            mockProject2.allowedOrigins
+            name,
+            ownerScw,
+            allowedOrigins
         );
 
         await project.addGasTank(gasTankProps, gasTankWhiteList);
@@ -315,10 +341,11 @@ describe('ProjectManager', () => {
     });
 
     test('project tries to add two gas tanks on the same network', async () => {
+        const { name, ownerScw, allowedOrigins } = mockProjects[5];
         const project = await constants.projectsManager.addProject(
-            mockProject2.name,
-            mockProject2.ownerScw,
-            mockProject2.allowedOrigins
+            name,
+            ownerScw,
+            allowedOrigins
         );
 
         await project.addGasTank(gasTankProps, gasTankWhiteList);
