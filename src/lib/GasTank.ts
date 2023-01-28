@@ -104,7 +104,7 @@ export class GasTank {
                 `SCW is not deployed for ${params.zeroWalletAddress}`
             );
         }
-        if (!this.authorizer.isInWhiteList(params.targetContractAddress)) {
+        if (!(await this.authorizer.isInWhiteList(params.targetContractAddress))) {
             throw new Error(
                 'target contract is not included in the white List'
             );
@@ -142,7 +142,7 @@ export class GasTank {
             );
         }
 
-        if (!this.authorizer.isInWhiteList(params.safeTXBody.to)) {
+        if (!(await this.authorizer.isInWhiteList(params.safeTXBody.to))) {
             throw new Error(
                 'target contract is not included in the white List'
             );
