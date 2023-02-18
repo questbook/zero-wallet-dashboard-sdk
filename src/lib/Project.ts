@@ -69,7 +69,7 @@ export default class Project {
     async addGasTank(
         gasTank: NewGasTankParams,
         whiteList: string[]
-    ): Promise<void> {
+    ): Promise<GasTankRawType> {
         await this.readyPromise;
 
         if (await this.doesGasTankExist(gasTank.chainId)) {
@@ -98,6 +98,17 @@ export default class Project {
             whiteList,
             gasTankIdList
         ]);
+
+        return {
+            gas_tank_id: gasTankId,
+            project_id: this.projectId!,
+            created_at: now.toUTCString(),
+            chain_id: gasTank.chainId.toString(),
+            provider_url: '',
+            funding_key: fundingKey.toString(),
+            whitelist: whiteList,
+            balance: '0',
+        }
     }
 
     async #getProjectDetailsRow(): Promise<ProjectRawType> {

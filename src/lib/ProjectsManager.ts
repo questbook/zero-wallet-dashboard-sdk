@@ -133,7 +133,6 @@ export default class ProjectsManager {
         if (
             project.project_api_key !== this.nativeProject.apiKey ||
             project.name !== this.nativeProject.name ||
-            project.allowed_origins !== this.nativeProject.allowedOrigins ||
             project.project_id !== this.nativeProject.projectId
         ) {
             throw new Error(
