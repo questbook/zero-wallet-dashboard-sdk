@@ -51,11 +51,25 @@ export default class ProjectsManager {
         // @todo add prisma client config
         this.#prismaClient = new PrismaClient();
 
-        this.readyPromise = this.#addNativeEntries();
+        this.readyPromise = this.#init();
     }
 
     async endConnection() {
         await this.#prismaClient.$disconnect();
+    }
+
+    async #init() {
+        if (this.isTesting){
+            await this.#deleteAllTables()
+        }
+        await this.#addNativeEntries();
+    }
+
+    async #deleteAllTables() {
+        await this.#prismaClient.project.deleteMany()
+        await this.#prismaClient.gasTank.deleteMany()
+        await this.#prismaClient.gaslessLogin.deleteMany()
+        await this.#prismaClient.contractsWhitelist.deleteMany()   
     }
 
     async #addNativeEntries() {
