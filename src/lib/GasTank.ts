@@ -118,15 +118,6 @@ export class GasTank {
             throw new Error('User is not authorized');
         }
 
-        const { doesWalletExist } = await this.doesProxyWalletExist(
-            params.zeroWalletAddress
-        );
-        if (!doesWalletExist) {
-            throw new Error(
-                `SCW is not deployed for ${params.zeroWalletAddress}`
-            );
-        }
-
         if (!(await this.authorizer.isInWhiteList(params.safeTXBody.to))) {
             throw new Error(
                 'target contract is not included in the white List'
