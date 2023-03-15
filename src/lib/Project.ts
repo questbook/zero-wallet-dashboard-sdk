@@ -1,14 +1,6 @@
-import { Pool } from 'pg';
+import { PrismaClient } from '@prisma/client';
 
 import { SupportedChainId } from '../constants/chains';
-import {
-    addGasTankQuery,
-    addMultiGasTankWhitelistQuery,
-    getGasTankByChainIdQuery,
-    getGasTanksByProjectIdQuery,
-    getGasTanksByProjectIdRaw,
-    updateProjectNameAndAllowedOriginsQuery
-} from '../constants/database';
 import {
     GasTankProps,
     GasTankRawType,
@@ -23,8 +15,8 @@ import { BiconomyRelayer } from './relayers/BiconomyRelayer';
 export default class Project {
     #gasTanks = {} as { [key: string]: GasTank };
     #projectApiKey?: string;
+    #prismaClient: PrismaClient;
     projectId;
-    #pool: Pool;
     #authToken: string;
     readyPromise: Promise<void>;
     owner?: string;
@@ -38,7 +30,7 @@ export default class Project {
             projectId?: string;
             projectApiKey?: string;
         },
-        pool: Pool,
+        prismaClient: PrismaClient,
         authToken: string,
         loadAllOnInit?: boolean
     ) {
@@ -49,7 +41,7 @@ export default class Project {
         this.projectId = projectId;
         this.#projectApiKey = projectApiKey;
         this.#authToken = authToken;
-        this.#pool = pool;
+        this.#prismaClient = prismaClient;
         this.#loadAllOnInit = loadAllOnInit;
 
         this.readyPromise = loadAllOnInit
@@ -59,11 +51,15 @@ export default class Project {
 
     async doesGasTankExist(chainId: SupportedChainId): Promise<boolean> {
         await this.readyPromise;
-        const { rows } = await this.#pool.query(getGasTankByChainIdQuery, [
-            this.projectId,
-            chainId
-        ]);
-        return rows.length > 0;
+        const gasTank = await this.#prismaClient.gasTank.findUnique({
+            where: {
+                projectId_chainId: {
+                    projectId: this.projectId!,
+                    chainId
+                }
+            }
+        });
+        return !!gasTank;
     }
 
     async addGasTank(
@@ -82,54 +78,66 @@ export default class Project {
             this.#authToken
         );
         const now = new Date();
-        const gasTankId = (
-            await this.#pool.query<{ gas_tank_id: string }>(addGasTankQuery, [
-                apiKey,
-                this.projectId,
-                now,
-                gasTank.chainId,
-                gasTank.providerURL,
-                fundingKey
-            ])
-        ).rows[0].gas_tank_id;
 
-        const gasTankIdList = Array<string>(whiteList.length).fill(gasTankId);
-        await this.#pool.query(addMultiGasTankWhitelistQuery, [
-            whiteList,
-            gasTankIdList
-        ]);
+        const { gasTankId } = await this.#prismaClient.gasTank.create({
+            data: {
+                apiKey,
+                projectId: this.projectId!,
+                createdAt: now,
+                chainId: gasTank.chainId,
+                providerUrl: gasTank.providerURL,
+                fundingKey
+            },
+            select: {
+                gasTankId: true
+            }
+        });
+
+        await this.#prismaClient.contractsWhitelist.createMany({
+            data: whiteList.map((address) => ({
+                address,
+                gasTankId
+            }))
+        });
 
         return {
-            gas_tank_id: gasTankId,
+            gas_tank_id: gasTankId.toString(),
             project_id: this.projectId!,
-            created_at: now.toUTCString(),
+            created_at: now.toISOString(),
             chain_id: gasTank.chainId.toString(),
             provider_url: '',
             funding_key: fundingKey.toString(),
             whitelist: whiteList,
-            balance: '0',
-        }
+            balance: '0'
+        };
     }
 
     async #getProjectDetailsRow(): Promise<ProjectRawType> {
+        let project;
         if (this.#projectApiKey) {
-            const res = await this.#pool.query(
-                'SELECT * FROM projects WHERE project_api_key = $1',
-                [this.#projectApiKey]
-            );
-            if (res.rows.length === 0) {
-                throw new Error('project not found');
-            }
-            return res.rows[0];
+            project = await this.#prismaClient.project.findUnique({
+                where: {
+                    projectApiKey: this.#projectApiKey
+                }
+            });
+        } else {
+            project = await this.#prismaClient.project.findUnique({
+                where: {
+                    projectId: this.projectId
+                }
+            });
         }
-        const res = await this.#pool.query(
-            'SELECT * FROM projects WHERE project_id = $1',
-            [this.projectId]
-        );
-        if (res.rows.length === 0) {
+        if (!project) {
             throw new Error('project not found');
         }
-        return res.rows[0];
+        return {
+            project_id: project.projectId,
+            owner_scw: project.ownerScw,
+            created_at: project.createdAt.toUTCString(),
+            allowed_origins: project.allowedOrigins,
+            name: project.name,
+            project_api_key: project.projectApiKey
+        };
     }
 
     async #initProjectDetails(): Promise<void> {
@@ -149,7 +157,7 @@ export default class Project {
                 gasTanks.map(async (gasTank: GasTankProps) => {
                     this.#gasTanks[gasTank.chainId] = new GasTank(
                         gasTank,
-                        this.#pool
+                        this.#prismaClient
                     );
                     await this.#gasTanks[gasTank.chainId].readyPromise;
                 })
@@ -164,13 +172,19 @@ export default class Project {
     async #obtainGasTanksFromDatabase(): Promise<GasTanksType> {
         await this.readyPromise;
         try {
-            const res = await this.#pool.query<GasTankProps>(
-                getGasTanksByProjectIdQuery,
-                [this.projectId]
-            );
-            return res.rows.map((gasTank: GasTankProps) => ({
-                ...gasTank,
-                fundingKey: +gasTank.fundingKey
+            const gasTanks = await this.#prismaClient.gasTank.findMany({
+                where: {
+                    projectId: this.projectId
+                }
+            });
+            return gasTanks.map((gasTank) => ({
+                apiKey: gasTank.apiKey,
+                gasTankId: gasTank.gasTankId.toString(),
+                providerURL: gasTank.providerUrl,
+                createdAt: gasTank.createdAt.toUTCString(),
+                chainId:
+                    gasTank.chainId.toString() as unknown as SupportedChainId,
+                fundingKey: Number(gasTank.fundingKey)
             }));
         } catch (err) {
             throw new Error(err as string);
@@ -182,11 +196,15 @@ export default class Project {
         newAllowedOrigins: string[]
     ): Promise<void> {
         await this.readyPromise;
-        await this.#pool.query(updateProjectNameAndAllowedOriginsQuery, [
-            newName,
-            newAllowedOrigins,
-            this.projectId
-        ]);
+        await this.#prismaClient.project.update({
+            where: {
+                projectId: this.projectId
+            },
+            data: {
+                name: newName,
+                allowedOrigins: newAllowedOrigins
+            }
+        });
         this.name = newName;
         this.allowedOrigins = newAllowedOrigins;
     }
@@ -196,34 +214,60 @@ export default class Project {
         loadRelayer = true
     ): Promise<GasTank> {
         await this.readyPromise;
-        const { rows } = await this.#pool.query<GasTankProps>(
-            getGasTankByChainIdQuery,
-            [this.projectId, chainId]
-        );
-        if (rows.length === 0) {
+        const gasTankProps = await this.#prismaClient.gasTank.findUnique({
+            where: {
+                projectId_chainId: {
+                    projectId: this.projectId!,
+                    chainId
+                }
+            }
+        });
+        if (!gasTankProps) {
             throw new Error('gas tank not found');
         }
-        const gasTankProps = {
-            ...rows[0],
-            fundingKey: +rows[0].fundingKey
+        const gasTankProps2 = {
+            apiKey: gasTankProps.apiKey.toString(),
+            gasTankId: gasTankProps.gasTankId.toString(),
+            providerURL: gasTankProps.providerUrl,
+            createdAt: gasTankProps.createdAt.toUTCString(),
+            chainId:
+                gasTankProps.chainId.toString() as unknown as SupportedChainId,
+            fundingKey: Number(gasTankProps.fundingKey)
         };
-        const gasTank = new GasTank(gasTankProps, this.#pool, loadRelayer);
+        const gasTank = new GasTank(
+            gasTankProps2,
+            this.#prismaClient,
+            loadRelayer
+        );
         return gasTank;
     }
 
     async getGasTanksRaw(): Promise<GasTankRawType[]> {
         await this.readyPromise;
 
-        const { rows } = await this.#pool.query<
-            Omit<GasTankRawType, 'balance'> & { api_key: string }
-        >(getGasTanksByProjectIdRaw, [this.projectId]);
-        const newRowsPromises = rows.map(async (row) => {
+        const gasTanksProps = await this.#prismaClient.gasTank.findMany({
+            where: {
+                projectId: this.projectId!
+            },
+            include: {
+                contractsWhitelist: true
+            }
+        });
+
+        const newRowsPromises = gasTanksProps.map(async (gasTank) => {
             return {
-                ...row,
-                api_key: undefined,
+                gas_tank_id: gasTank.gasTankId.toString(),
+                project_id: gasTank.projectId,
+                chain_id: gasTank.chainId.toString(),
+                provider_url: '',
+                created_at: gasTank.createdAt.toUTCString(),
+                funding_key: gasTank.fundingKey.toString(),
+                whitelist: gasTank.contractsWhitelist.map(
+                    (contract) => contract.address
+                ),
                 balance: (
                     await BiconomyRelayer.getGasTankBalance(
-                        row.api_key,
+                        gasTank.apiKey,
                         this.#authToken
                     )
                 ).toString()
