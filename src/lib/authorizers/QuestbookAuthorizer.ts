@@ -1,37 +1,57 @@
+import { ContractsWhitelist, GaslessLogin, PrismaClient } from '@prisma/client';
 import { ethers } from 'ethers';
-import { Pool } from 'pg';
 
-import {
-    addContractWhitelistQuery,
-    addGaslessLoginQuery,
-    deleteContractsWhitelistQuery,
-    NONCE_EXPIRATION
-} from '../../constants/database';
+import { NONCE_EXPIRATION } from '../../constants/database';
 import { SignedMessage } from '../../types';
 
 import { BaseAuthorizer } from './BaseAuthorizer';
 
 export default class QuestbookAuthorizer implements BaseAuthorizer {
     name = 'Questbook Auhorizer';
-    #pool: Pool;
+    #prismaClient: PrismaClient;
     // loadingTableCreationWithIndex: Promise<void>;
-    #gasTankId: string;
+    #gasTankId: number;
 
-    constructor(gasTankId: string, pool: Pool) {
-        this.#pool = pool;
+    constructor(gasTankId: number, prismaClient: PrismaClient) {
+        this.#prismaClient = prismaClient;
         this.#gasTankId = gasTankId;
     }
 
     async endConnection() {
-        await this.#pool.end();
+        await this.#prismaClient.$disconnect();
+    }
+
+    async #getGaslessLoginFromPrisma(
+        address: string
+    ): Promise<GaslessLogin | null> {
+        return await this.#prismaClient.gaslessLogin.findUnique({
+            where: {
+                gasTankId_address: {
+                    gasTankId: this.#gasTankId,
+                    address
+                }
+            }
+        });
+    }
+
+    async #getContractWhitelistFromPrisma(
+        contractAddress: string
+    ): Promise<ContractsWhitelist | null> {
+        return await this.#prismaClient.contractsWhitelist.findUnique({
+            where: {
+                gasTankId_address: {
+                    address: contractAddress,
+                    gasTankId: this.#gasTankId
+                }
+            }
+        });
     }
 
     async isInWhiteList(contractAddress: string): Promise<boolean> {
-        const results = await this.#query(
-            'SELECT * FROM contracts_whitelist WHERE address = $1 AND gas_tank_id = $2 ;',
-            [contractAddress, this.#gasTankId]
+        const contractWhitelist = await this.#getContractWhitelistFromPrisma(
+            contractAddress
         );
-        if (results.rows.length === 0) {
+        if (!contractWhitelist) {
             return false;
         }
         return true;
@@ -42,10 +62,14 @@ export default class QuestbookAuthorizer implements BaseAuthorizer {
             throw new Error('Contract is not in whitelist!');
         }
         try {
-            await this.#query(deleteContractsWhitelistQuery, [
-                contractAddress,
-                this.#gasTankId
-            ]);
+            await this.#prismaClient.contractsWhitelist.delete({
+                where: {
+                    gasTankId_address: {
+                        gasTankId: this.#gasTankId,
+                        address: contractAddress
+                    }
+                }
+            });
         } catch (err) {
             throw new Error(err as string);
         }
@@ -54,10 +78,12 @@ export default class QuestbookAuthorizer implements BaseAuthorizer {
     async addToScwWhitelist(contractAddress: string): Promise<void> {
         if (await this.isInWhiteList(contractAddress)) return;
         try {
-            await this.#query(addContractWhitelistQuery, [
-                contractAddress,
-                this.#gasTankId
-            ]);
+            await this.#prismaClient.contractsWhitelist.create({
+                data: {
+                    address: contractAddress,
+                    gasTankId: this.#gasTankId
+                }
+            });
         } catch (err) {
             throw new Error(err as string);
         }
@@ -73,12 +99,16 @@ export default class QuestbookAuthorizer implements BaseAuthorizer {
         const newNonce = this.#createNonce(100);
 
         try {
-            await this.#query(addGaslessLoginQuery, [
-                address,
-                newNonce,
-                NONCE_EXPIRATION + Math.trunc(new Date().getTime() / 1000),
-                this.#gasTankId
-            ]);
+            await this.#prismaClient.gaslessLogin.create({
+                data: {
+                    address,
+                    nonce: newNonce,
+                    expiration:
+                        NONCE_EXPIRATION +
+                        Math.trunc(new Date().getTime() / 1000),
+                    gasTankId: this.#gasTankId
+                }
+            });
         } catch (err) {
             throw new Error(err as string);
         }
@@ -89,10 +119,14 @@ export default class QuestbookAuthorizer implements BaseAuthorizer {
             throw new Error('User does not exist!');
         }
         try {
-            await this.#query(
-                'DELETE FROM gasless_login WHERE address = $1 AND gas_tank_id = $2 ;',
-                [address, this.#gasTankId]
-            );
+            await this.#prismaClient.gaslessLogin.delete({
+                where: {
+                    gasTankId_address: {
+                        gasTankId: this.#gasTankId,
+                        address
+                    }
+                }
+            });
         } catch (err) {
             throw new Error(err as string);
         }
@@ -104,22 +138,27 @@ export default class QuestbookAuthorizer implements BaseAuthorizer {
         }
 
         const newNonce = this.#createNonce(100);
-
-        await this.#query(
-            'UPDATE gasless_login SET nonce = $1 WHERE address = $2 AND gas_tank_id = $3;',
-            [newNonce, address, this.#gasTankId]
-        );
-
+        await this.#prismaClient.gaslessLogin.update({
+            where: {
+                gasTankId_address: {
+                    address,
+                    gasTankId: this.#gasTankId
+                }
+            },
+            data: {
+                nonce: newNonce
+            }
+        });
         return newNonce;
     }
 
     async isUserAuthorized(
         signedNonce: SignedMessage,
         nonce: string,
-        webwallet_address: string
+        webwalletAddress: string
     ) {
         try {
-            if (!(await this.doesAddressExist(webwallet_address))) {
+            if (!(await this.doesAddressExist(webwalletAddress))) {
                 throw new Error('User is not registered!');
             }
         } catch (err) {
@@ -128,7 +167,7 @@ export default class QuestbookAuthorizer implements BaseAuthorizer {
 
         const address = this.#recoverAddress(signedNonce);
 
-        if (address !== webwallet_address) {
+        if (address !== webwalletAddress) {
             return false;
         }
 
@@ -139,28 +178,14 @@ export default class QuestbookAuthorizer implements BaseAuthorizer {
         return await this.#retrieveValidRecord(address, nonce);
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    async #query(query: string, values?: Array<any>): Promise<any> {
-        try {
-            // await this.loadingTableCreationWithIndex;
-            const res = await this.#pool.query(query, values);
-            return res;
-        } catch (err) {
-            throw new Error(err as string);
-        }
-    }
-
     async #retrieveValidRecord(address: string, nonce: string) {
-        const results = await this.#query(
-            'SELECT * FROM gasless_login WHERE address = $1 AND nonce = $2 AND gas_tank_id = $3;',
-            [address, nonce, this.#gasTankId]
-        );
+        const gaslessLogin = await this.#getGaslessLoginFromPrisma(address);
 
-        if (results.rows.length === 0) {
+        if (!gaslessLogin || gaslessLogin.nonce !== nonce) {
             return false;
         }
 
-        const expiration = results.rows[0].expiration;
+        const expiration = gaslessLogin.expiration;
 
         const curDate = new Date().getTime() / 1000;
 
@@ -169,31 +194,27 @@ export default class QuestbookAuthorizer implements BaseAuthorizer {
 
     async doesAddressExist(address: string): Promise<boolean> {
         try {
-            const results = await this.#query(
-                'SELECT * FROM gasless_login WHERE address = $1 AND gas_tank_id= $2 ;',
-                [address, this.#gasTankId]
-            );
-            return results.rows.length > 0;
+            const doesExist = !!(await this.#getGaslessLoginFromPrisma(
+                address
+            ));
+            return doesExist;
         } catch (err) {
             throw new Error(err as string);
         }
     }
 
     async getNonce(address: string): Promise<boolean | string> {
-        const results = await this.#query(
-            'SELECT nonce, expiration FROM gasless_login WHERE address = $1 AND gas_tank_id = $2 ORDER BY expiration DESC',
-            [address, this.#gasTankId]
-        );
+        const gaslessLogin = await this.#getGaslessLoginFromPrisma(address);
 
-        if (results.rows.length === 0) {
+        if (!gaslessLogin) {
             return false;
         }
 
-        if (results.rows[0].expiration <= new Date().getTime() / 1000) {
+        if (gaslessLogin.expiration <= new Date().getTime() / 1000) {
             return false;
         }
 
-        return results.rows[0].nonce;
+        return gaslessLogin.nonce;
     }
 
     #createNonce = (length: number) => {
