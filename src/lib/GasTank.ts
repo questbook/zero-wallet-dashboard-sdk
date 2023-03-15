@@ -1,7 +1,6 @@
-import { Pool } from 'pg';
+import { PrismaClient } from '@prisma/client';
 
 import { SupportedChainId } from '../constants/chains';
-import { updateGasTankQuery } from '../constants/database';
 import {
     BuildExecTransactionType,
     BuildTransactionParams,
@@ -22,27 +21,31 @@ export class GasTank {
     readyPromise: Promise<void>;
     providerURL: string;
     loadRelayer: boolean;
-    gasTankId: string;
+    gasTankId: number;
 
     // private fields
-    #pool: Pool;
+    #prismaClient: PrismaClient;
     #relayer: BiconomyRelayer; // We can simply swap out biconomy by using a different relayer
     authorizer: QuestbookAuthorizer; // We can change the authorizer by simply swapping out the QuestbookAuthorizer
 
-    constructor(gasTank: GasTankProps, pool: Pool, loadRelayer = true) {
+    constructor(
+        gasTank: GasTankProps,
+        prismaClient: PrismaClient,
+        loadRelayer = true
+    ) {
         this.createdAt = gasTank.createdAt;
         this.chainId = gasTank.chainId;
         this.fundingKey = gasTank.fundingKey;
-        this.#pool = pool;
+        this.#prismaClient = prismaClient;
         this.providerURL = gasTank.providerURL;
         this.loadRelayer = loadRelayer;
-        this.gasTankId = gasTank.gasTankId;
+        this.gasTankId = parseInt(gasTank.gasTankId);
         this.#relayer = new BiconomyRelayer({
             chainId: gasTank.chainId,
             apiKey: gasTank.apiKey,
             providerURL: gasTank.providerURL
         });
-        this.authorizer = new QuestbookAuthorizer(gasTank.gasTankId, pool);
+        this.authorizer = new QuestbookAuthorizer(this.gasTankId, prismaClient);
         this.readyPromise = this.#relayer.biconomyLoading;
         if (!loadRelayer) {
             // eslint-disable-next-line @typescript-eslint/no-empty-function
@@ -209,10 +212,15 @@ export class GasTank {
         if (this.loadRelayer) {
             await this.readyPromise;
         }
-        await this.#pool.query(updateGasTankQuery, [
-            newProviderUrl,
-            this.gasTankId
-        ]);
+
+        await this.#prismaClient.gasTank.update({
+            where: {
+                gasTankId: this.gasTankId
+            },
+            data: {
+                providerUrl: newProviderUrl
+            }
+        });
 
         this.providerURL = newProviderUrl;
     }
