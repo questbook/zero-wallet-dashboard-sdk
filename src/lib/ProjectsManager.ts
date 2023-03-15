@@ -1,25 +1,8 @@
 import { readFileSync } from 'fs';
 
+import { PrismaClient } from '@prisma/client';
 import { load } from 'js-yaml';
-import { Pool } from 'pg';
 
-import {
-    addNativeGasTanksQuery,
-    addNativeProjectQuery,
-    addProjectQuery,
-    createContractsWhitelistTable,
-    createGaslessLoginTableQuery,
-    createGasTanksTableQuery,
-    createProjectsTableQuery,
-    deleteNativeGasTanksQuery,
-    deleteProjectQuery,
-    dropContractsWhitelistTable,
-    dropGaslessLoginTableQuery,
-    dropGasTanksTableQuery,
-    dropProjectsTableQuery,
-    getProjectsByOwnerQuery,
-    indices
-} from '../constants/database';
 import {
     fileDoc,
     NativeGasTankType,
@@ -31,7 +14,7 @@ import { isFileDoc } from '../utils/typeChecker';
 import Project from './Project';
 
 export default class ProjectsManager {
-    #pool: Pool;
+    #prismaClient: PrismaClient;
     #authToken: string;
     readyPromise: Promise<void>;
     isTesting: boolean;
@@ -60,54 +43,19 @@ export default class ProjectsManager {
         this.nativeProject = doc.project;
         this.nativeGasTanks = doc.gasTanks;
         this.#authToken = doc.authToken;
-        const parsedDataBaseConfig = {
-            ...doc.databaseConfig,
-            port: +doc.databaseConfig.port
-        };
-        this.#pool = new Pool(parsedDataBaseConfig);
-        this.readyPromise = this.getDatabaseReadyWithIndex();
-    }
+        // const parsedDataBaseConfig = {
+        //     ...doc.databaseConfig,
+        //     port: +doc.databaseConfig.port
+        // };
+        // this.#pool = new Pool(parsedDataBaseConfig);
+        // @todo add prisma client config
+        this.#prismaClient = new PrismaClient();
 
-    async #clearDatabase() {
-        try {
-            await this.#pool.query(dropGaslessLoginTableQuery);
-            await this.#pool.query(dropContractsWhitelistTable);
-            await this.#pool.query(dropGasTanksTableQuery);
-            await this.#pool.query(dropProjectsTableQuery);
-        } catch {
-            console.log('table does not exist');
-        }
-    }
-
-    async #createTables() {
-        try {
-            await this.#pool.query(createProjectsTableQuery);
-            await this.#pool.query(createGasTanksTableQuery);
-            await this.#pool.query(createGaslessLoginTableQuery);
-            await this.#pool.query(createContractsWhitelistTable);
-        } catch (err) {
-            throw new Error(err as string);
-        }
-    }
-
-    async #createIndices() {
-        const queryPromises = indices.map((query) => this.#pool.query(query));
-        await Promise.allSettled(queryPromises);
+        this.readyPromise = this.#addNativeEntries();
     }
 
     async endConnection() {
-        await this.#pool.end();
-    }
-
-    async getDatabaseReadyWithIndex() {
-        if (this.isTesting) {
-            await this.#clearDatabase();
-        }
-
-        await this.#createTables();
-        await this.#createIndices();
-
-        await this.#addNativeEntries();
+        await this.#prismaClient.$disconnect();
     }
 
     async #addNativeEntries() {
@@ -116,24 +64,25 @@ export default class ProjectsManager {
     }
 
     async #doesNativeProjectExist(): Promise<boolean> {
-        const { rows } = await this.#pool.query<ProjectRawType>(
-            getProjectsByOwnerQuery,
-            [this.nativeProject.ownerScw]
-        );
+        const projects = await this.#prismaClient.project.findMany({
+            where: {
+                ownerScw: this.nativeProject.ownerScw
+            }
+        });
 
-        if (rows.length === 0) {
+        if (projects.length === 0) {
             return false;
         }
 
-        if (rows.length > 1) {
+        if (projects.length > 1) {
             throw new Error('there are more than one project with the owner');
         }
 
-        const project = rows[0];
+        const project = projects[0];
         if (
-            project.project_api_key !== this.nativeProject.apiKey ||
+            project.projectApiKey !== this.nativeProject.apiKey ||
             project.name !== this.nativeProject.name ||
-            project.project_id !== this.nativeProject.projectId
+            project.projectId !== this.nativeProject.projectId
         ) {
             throw new Error(
                 'the native project already exists but with different values'
@@ -148,71 +97,39 @@ export default class ProjectsManager {
 
         if (await this.#doesNativeProjectExist()) return;
 
-        await this.#pool.query(addNativeProjectQuery, [
-            this.nativeProject.projectId,
-            this.nativeProject.apiKey,
-            this.nativeProject.name,
-            now,
-            this.nativeProject.ownerScw,
-            this.nativeProject.allowedOrigins
-        ]);
+        await this.#prismaClient.project.create({
+            data: {
+                projectId: this.nativeProject.projectId,
+                projectApiKey: this.nativeProject.apiKey,
+                name: this.nativeProject.name,
+                createdAt: now,
+                ownerScw: this.nativeProject.ownerScw
+            }
+        });
     }
 
     async #removeAllNativeGasTanks() {
-        await this.#pool.query(deleteNativeGasTanksQuery, [
-            this.nativeProject.projectId
-        ]);
-    }
-
-    #getNativeGasTanksLists() {
-        const now = new Date();
-        const apiKeyList = Object.keys(this.nativeGasTanks).map(
-            (key) => this.nativeGasTanks[key].apiKey
-        );
-        const projectIdList = Array<string>(apiKeyList.length).fill(
-            this.nativeProject.projectId
-        );
-        const createdAtList = Array<Date>(apiKeyList.length).fill(now);
-        const chainIdList = Object.keys(this.nativeGasTanks).map(
-            (key) => this.nativeGasTanks[key].chainId
-        );
-        const providerURLList = Object.keys(this.nativeGasTanks).map(
-            (key) => this.nativeGasTanks[key].providerURL
-        );
-        const fundingKeyList = Object.keys(this.nativeGasTanks).map(
-            (key) => this.nativeGasTanks[key].fundingKey
-        );
-
-        return {
-            apiKeyList,
-            projectIdList,
-            createdAtList,
-            chainIdList,
-            providerURLList,
-            fundingKeyList
-        };
+        await this.#prismaClient.gasTank.deleteMany({
+            where: {
+                projectId: this.nativeProject.projectId
+            }
+        });
     }
 
     async #addNativeGasTanks() {
         await this.#removeAllNativeGasTanks();
 
-        const {
-            apiKeyList,
-            projectIdList,
-            createdAtList,
-            chainIdList,
-            providerURLList,
-            fundingKeyList
-        } = this.#getNativeGasTanksLists();
-
-        await this.#pool.query(addNativeGasTanksQuery, [
-            apiKeyList,
-            projectIdList,
-            createdAtList,
-            chainIdList,
-            providerURLList,
-            fundingKeyList
-        ]);
+        const now = new Date();
+        await this.#prismaClient.gasTank.createMany({
+            data: Object.keys(this.nativeGasTanks).map((key) => ({
+                apiKey: this.nativeGasTanks[key].apiKey,
+                chainId: this.nativeGasTanks[key].chainId,
+                fundingKey: this.nativeGasTanks[key].fundingKey,
+                projectId: this.nativeProject.projectId,
+                createdAt: now,
+                providerUrl: this.nativeGasTanks[key].providerURL
+            }))
+        });
     }
 
     async addProject(
@@ -221,57 +138,66 @@ export default class ProjectsManager {
         allowedOrigins: Array<string>
     ) {
         await this.readyPromise;
-        const createAt = new Date();
-        let projectId;
+        const createdAt = new Date();
         try {
-            projectId = await this.#pool.query<{ project_id: string }>(
-                addProjectQuery,
-                [name, createAt, ownerScw, allowedOrigins]
+            const { projectId } = await this.#prismaClient.project.create({
+                data: {
+                    name,
+                    createdAt,
+                    ownerScw,
+                    allowedOrigins
+                },
+                select: {
+                    projectId: true
+                }
+            });
+            return new Project(
+                { projectId: projectId },
+                this.#prismaClient,
+                this.#authToken
             );
         } catch (err) {
             throw new Error(err as string);
         }
-        return new Project(
-            { projectId: projectId.rows[0].project_id },
-            this.#pool,
-            this.#authToken
-        );
     }
 
     async removeProject(projectId: string) {
         await this.readyPromise;
         try {
-            await this.#pool.query(deleteProjectQuery, [projectId]);
+            await this.#prismaClient.project.delete({
+                where: {
+                    projectId
+                }
+            });
         } catch (err) {
             console.log(err);
             throw new Error(err as string);
         }
     }
 
-    async getEstimateProjectCount() {
-        await this.readyPromise;
-        const projects = await this.#pool.query<{ estimate: string }>(
-            'SELECT reltuples AS estimate FROM pg_class where relname = $1 ;',
-            ['projects']
-        );
-        return +projects.rows[0].estimate;
-    }
-
     async getProjectsCount() {
         await this.readyPromise;
-        const projects = await this.#pool.query<{ count: string }>(
-            'SELECT COUNT(*) FROM projects;'
-        );
-        return +projects.rows[0].count;
+        const count = await this.#prismaClient.project.count();
+        return count;
     }
 
-    async getAllProjectsOwnerRaw(ownerScw: string) {
+    async getAllProjectsOwnerRaw(ownerScw: string): Promise<ProjectRawType[]> {
         await this.readyPromise;
-        const projects = await this.#pool.query<ProjectRawType>(
-            getProjectsByOwnerQuery,
-            [ownerScw]
-        );
-        return projects.rows;
+
+        const projects = await this.#prismaClient.project.findMany({
+            where: {
+                ownerScw
+            }
+        });
+
+        return projects.map((project) => ({
+            project_id: project.projectId,
+            project_api_key: project.projectApiKey,
+            name: project.name,
+            created_at: project.createdAt.toISOString(),
+            owner_scw: project.ownerScw,
+            allowed_origins: project.allowedOrigins
+        }));
     }
 
     async getProjectByApiKey(
@@ -281,7 +207,7 @@ export default class ProjectsManager {
         await this.readyPromise;
         return new Project(
             { projectApiKey },
-            this.#pool,
+            this.#prismaClient,
             this.#authToken,
             loadAllOnInit
         );
@@ -294,7 +220,7 @@ export default class ProjectsManager {
         await this.readyPromise;
         return new Project(
             { projectId },
-            this.#pool,
+            this.#prismaClient,
             this.#authToken,
             loadAllOnInit
         );
