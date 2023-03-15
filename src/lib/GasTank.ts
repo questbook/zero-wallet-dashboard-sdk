@@ -53,37 +53,21 @@ export class GasTank {
         }
     }
     async addAuthorizedUser(address: string) {
-        try {
-            await this.authorizer.addAuthorizedUser(address);
-        } catch (e) {
-            throw new Error(e as string);
-        }
+        await this.authorizer.addAuthorizedUser(address);
     }
 
     async deleteUser(address: string) {
-        try {
-            await this.authorizer.deleteUser(address);
-        } catch (e) {
-            throw new Error(e as string);
-        }
+        await this.authorizer.deleteUser(address);
     }
 
     async doesUserExist(address: string): Promise<boolean> {
-        try {
-            return await this.authorizer.doesAddressExist(address);
-        } catch (e) {
-            throw new Error(e as string);
-        }
+        return await this.authorizer.doesAddressExist(address);
     }
     async getNonce(address: string): Promise<string | boolean> {
         return await this.authorizer.getNonce(address);
     }
     async refreshNonce(address: string): Promise<string> {
-        try {
-            return await this.authorizer.refreshUserAuthorization(address);
-        } catch (e) {
-            throw new Error(e as string);
-        }
+        return await this.authorizer.refreshUserAuthorization(address);
     }
     async buildTransaction(params: BuildTransactionParams): Promise<{
         scwAddress: string;
@@ -114,15 +98,11 @@ export class GasTank {
                 'target contract is not included in the white List'
             );
         }
-        try {
-            return await this.#relayer.buildExecTransaction(
-                params.populatedTx,
-                params.targetContractAddress,
-                scwAddress
-            );
-        } catch (e) {
-            throw new Error(e as string);
-        }
+        return await this.#relayer.buildExecTransaction(
+            params.populatedTx,
+            params.targetContractAddress,
+            scwAddress
+        );
     }
 
     async sendGaslessTransaction(
@@ -152,22 +132,14 @@ export class GasTank {
                 'target contract is not included in the white List'
             );
         }
-        try {
-            return await this.#relayer.sendGaslessTransaction(params);
-        } catch (e) {
-            throw new Error(e as string);
-        }
+        return await this.#relayer.sendGaslessTransaction(params);
     }
 
     async doesProxyWalletExist(zeroWalletAddress: string): Promise<{
         doesWalletExist: boolean;
         walletAddress: string;
     }> {
-        try {
-            return await this.#relayer.doesSCWExists(zeroWalletAddress);
-        } catch (e) {
-            throw new Error(e as string);
-        }
+        return await this.#relayer.doesSCWExists(zeroWalletAddress);
     }
 
     async deployProxyWallet(params: deployProxyWalletParams): Promise<string> {
@@ -181,31 +153,19 @@ export class GasTank {
             throw new Error('User is not authorized');
         }
 
-        try {
-            const scwAddress = await this.#relayer.deploySCW(
-                params.zeroWalletAddress
-            );
-            await this.authorizer.addToScwWhitelist(scwAddress);
-            return scwAddress;
-        } catch (e) {
-            throw new Error(e as string);
-        }
+        const scwAddress = await this.#relayer.deploySCW(
+            params.zeroWalletAddress
+        );
+        await this.authorizer.addToScwWhitelist(scwAddress);
+        return scwAddress;
     }
 
     async addToWhiteList(contractAddress: string): Promise<void> {
-        try {
-            await this.authorizer.addToScwWhitelist(contractAddress);
-        } catch (e) {
-            throw new Error(e as string);
-        }
+        await this.authorizer.addToScwWhitelist(contractAddress);
     }
 
     async removeFromWhiteList(contractAddress: string): Promise<void> {
-        try {
-            await this.authorizer.removeContractFromWhitelist(contractAddress);
-        } catch (e) {
-            throw new Error(e as string);
-        }
+        await this.authorizer.removeContractFromWhitelist(contractAddress);
     }
 
     async updateGasTankProviderUrl(newProviderUrl: string) {

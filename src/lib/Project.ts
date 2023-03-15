@@ -171,24 +171,19 @@ export default class Project {
 
     async #obtainGasTanksFromDatabase(): Promise<GasTanksType> {
         await this.readyPromise;
-        try {
-            const gasTanks = await this.#prismaClient.gasTank.findMany({
-                where: {
-                    projectId: this.projectId
-                }
-            });
-            return gasTanks.map((gasTank) => ({
-                apiKey: gasTank.apiKey,
-                gasTankId: gasTank.gasTankId.toString(),
-                providerURL: gasTank.providerUrl,
-                createdAt: gasTank.createdAt.toUTCString(),
-                chainId:
-                    gasTank.chainId.toString() as unknown as SupportedChainId,
-                fundingKey: Number(gasTank.fundingKey)
-            }));
-        } catch (err) {
-            throw new Error(err as string);
-        }
+        const gasTanks = await this.#prismaClient.gasTank.findMany({
+            where: {
+                projectId: this.projectId
+            }
+        });
+        return gasTanks.map((gasTank) => ({
+            apiKey: gasTank.apiKey,
+            gasTankId: gasTank.gasTankId.toString(),
+            providerURL: gasTank.providerUrl,
+            createdAt: gasTank.createdAt.toUTCString(),
+            chainId: gasTank.chainId.toString() as unknown as SupportedChainId,
+            fundingKey: Number(gasTank.fundingKey)
+        }));
     }
 
     async updateProject(

@@ -165,15 +165,11 @@ export class BiconomyRelayer implements BaseRelayer {
     }
 
     async deploySCW(zeroWalletAddress: string) {
-        try {
-            await this.#waitForBiconomyWalletClient();
+        await this.#waitForBiconomyWalletClient();
 
-            const scwAddress = await this.#unsafeDeploySCW(zeroWalletAddress);
+        const scwAddress = await this.#unsafeDeploySCW(zeroWalletAddress);
 
-            return scwAddress;
-        } catch (err) {
-            throw new Error(err as string);
-        }
+        return scwAddress;
     }
 
     async buildExecTransaction(

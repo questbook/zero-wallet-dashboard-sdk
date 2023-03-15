@@ -61,32 +61,24 @@ export default class QuestbookAuthorizer implements BaseAuthorizer {
         if (!(await this.isInWhiteList(contractAddress))) {
             throw new Error('Contract is not in whitelist!');
         }
-        try {
-            await this.#prismaClient.contractsWhitelist.delete({
-                where: {
-                    gasTankId_address: {
-                        gasTankId: this.#gasTankId,
-                        address: contractAddress
-                    }
+        await this.#prismaClient.contractsWhitelist.delete({
+            where: {
+                gasTankId_address: {
+                    gasTankId: this.#gasTankId,
+                    address: contractAddress
                 }
-            });
-        } catch (err) {
-            throw new Error(err as string);
-        }
+            }
+        });
     }
 
     async addToScwWhitelist(contractAddress: string): Promise<void> {
         if (await this.isInWhiteList(contractAddress)) return;
-        try {
-            await this.#prismaClient.contractsWhitelist.create({
-                data: {
-                    address: contractAddress,
-                    gasTankId: this.#gasTankId
-                }
-            });
-        } catch (err) {
-            throw new Error(err as string);
-        }
+        await this.#prismaClient.contractsWhitelist.create({
+            data: {
+                address: contractAddress,
+                gasTankId: this.#gasTankId
+            }
+        });
     }
 
     async addAuthorizedUser(address: string) {
@@ -98,38 +90,29 @@ export default class QuestbookAuthorizer implements BaseAuthorizer {
 
         const newNonce = this.#createNonce(100);
 
-        try {
-            await this.#prismaClient.gaslessLogin.create({
-                data: {
-                    address,
-                    nonce: newNonce,
-                    expiration:
-                        NONCE_EXPIRATION +
-                        Math.trunc(new Date().getTime() / 1000),
-                    gasTankId: this.#gasTankId
-                }
-            });
-        } catch (err) {
-            throw new Error(err as string);
-        }
+        await this.#prismaClient.gaslessLogin.create({
+            data: {
+                address,
+                nonce: newNonce,
+                expiration:
+                    NONCE_EXPIRATION + Math.trunc(new Date().getTime() / 1000),
+                gasTankId: this.#gasTankId
+            }
+        });
     }
 
     async deleteUser(address: string): Promise<void> {
         if (!(await this.doesAddressExist(address))) {
             throw new Error('User does not exist!');
         }
-        try {
-            await this.#prismaClient.gaslessLogin.delete({
-                where: {
-                    gasTankId_address: {
-                        gasTankId: this.#gasTankId,
-                        address
-                    }
+        await this.#prismaClient.gaslessLogin.delete({
+            where: {
+                gasTankId_address: {
+                    gasTankId: this.#gasTankId,
+                    address
                 }
-            });
-        } catch (err) {
-            throw new Error(err as string);
-        }
+            }
+        });
     }
 
     async refreshUserAuthorization(address: string) {
@@ -157,12 +140,8 @@ export default class QuestbookAuthorizer implements BaseAuthorizer {
         nonce: string,
         webwalletAddress: string
     ) {
-        try {
-            if (!(await this.doesAddressExist(webwalletAddress))) {
-                throw new Error('User is not registered!');
-            }
-        } catch (err) {
-            throw new Error(err as string);
+        if (!(await this.doesAddressExist(webwalletAddress))) {
+            throw new Error('User is not registered!');
         }
 
         const address = this.#recoverAddress(signedNonce);
@@ -193,14 +172,8 @@ export default class QuestbookAuthorizer implements BaseAuthorizer {
     }
 
     async doesAddressExist(address: string): Promise<boolean> {
-        try {
-            const doesExist = !!(await this.#getGaslessLoginFromPrisma(
-                address
-            ));
-            return doesExist;
-        } catch (err) {
-            throw new Error(err as string);
-        }
+        const doesExist = !!(await this.#getGaslessLoginFromPrisma(address));
+        return doesExist;
     }
 
     async getNonce(address: string): Promise<boolean | string> {

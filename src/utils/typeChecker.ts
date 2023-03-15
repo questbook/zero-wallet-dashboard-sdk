@@ -85,13 +85,9 @@ export function isFileDoc(obj: any): obj is fileDoc {
     if (obj?.authToken === undefined || obj?.databaseConfig === undefined) {
         throw new Error('yml file does not match the required structure');
     }
-    try {
-        isDatabaseConfig(obj.databaseConfig);
-        isAuthToken(obj.authToken);
-        isNativeProjectType(obj.project);
-        isNativeGasTanksType(obj.gasTanks);
-    } catch (e) {
-        throw new Error(e as string);
-    }
+    isDatabaseConfig(obj.databaseConfig);
+    isAuthToken(obj.authToken);
+    isNativeProjectType(obj.project);
+    isNativeGasTanksType(obj.gasTanks);
     return true;
 }

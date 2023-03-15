@@ -27,17 +27,11 @@ export default class ProjectsManager {
      * @param isTesting if true, the database will be cleared before starting the server.
      */
     constructor(path: string, isTesting?: boolean) {
-        let doc: fileDoc | unknown;
-
-        try {
-            doc = load(readFileSync(path, 'utf8'));
-            if (!isFileDoc(doc)) {
-                throw new Error(
-                    'the yml file does not match the required structure'
-                );
-            }
-        } catch (e) {
-            throw new Error(e as string);
+        const doc: fileDoc | unknown = load(readFileSync(path, 'utf8'));
+        if (!isFileDoc(doc)) {
+            throw new Error(
+                'the yml file does not match the required structure'
+            );
         }
         this.isTesting = isTesting || false;
         this.nativeProject = doc.project;
@@ -59,17 +53,17 @@ export default class ProjectsManager {
     }
 
     async #init() {
-        if (this.isTesting){
-            await this.#deleteAllTables()
+        if (this.isTesting) {
+            await this.#deleteAllTables();
         }
         await this.#addNativeEntries();
     }
 
     async #deleteAllTables() {
-        await this.#prismaClient.project.deleteMany()
-        await this.#prismaClient.gasTank.deleteMany()
-        await this.#prismaClient.gaslessLogin.deleteMany()
-        await this.#prismaClient.contractsWhitelist.deleteMany()   
+        await this.#prismaClient.project.deleteMany();
+        await this.#prismaClient.gasTank.deleteMany();
+        await this.#prismaClient.gaslessLogin.deleteMany();
+        await this.#prismaClient.contractsWhitelist.deleteMany();
     }
 
     async #addNativeEntries() {
@@ -153,40 +147,31 @@ export default class ProjectsManager {
     ) {
         await this.readyPromise;
         const createdAt = new Date();
-        try {
-            const { projectId } = await this.#prismaClient.project.create({
-                data: {
-                    name,
-                    createdAt,
-                    ownerScw,
-                    allowedOrigins
-                },
-                select: {
-                    projectId: true
-                }
-            });
-            return new Project(
-                { projectId: projectId },
-                this.#prismaClient,
-                this.#authToken
-            );
-        } catch (err) {
-            throw new Error(err as string);
-        }
+        const { projectId } = await this.#prismaClient.project.create({
+            data: {
+                name,
+                createdAt,
+                ownerScw,
+                allowedOrigins
+            },
+            select: {
+                projectId: true
+            }
+        });
+        return new Project(
+            { projectId: projectId },
+            this.#prismaClient,
+            this.#authToken
+        );
     }
 
     async removeProject(projectId: string) {
         await this.readyPromise;
-        try {
-            await this.#prismaClient.project.delete({
-                where: {
-                    projectId
-                }
-            });
-        } catch (err) {
-            console.log(err);
-            throw new Error(err as string);
-        }
+        await this.#prismaClient.project.delete({
+            where: {
+                projectId
+            }
+        });
     }
 
     async getProjectsCount() {
