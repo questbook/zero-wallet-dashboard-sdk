@@ -4,7 +4,7 @@ export const createProjectsTableQuery =
     ' \
 CREATE TABLE IF NOT EXISTS projects ( \
     project_id UUID PRIMARY KEY, \
-    project_api_key UUID, \
+    project_api_key UUID NOT NULL, \
     name VARCHAR ( 256 ) NOT NULL, \
     created_at TIMESTAMPTZ NOT NULL, \
     owner_scw VARCHAR ( 70 ) NOT NULL, \
@@ -18,7 +18,7 @@ export const createGasTanksTableQuery =
 CREATE TABLE IF NOT EXISTS gas_tanks ( \
     gas_tank_id bigserial PRIMARY KEY, \
     api_key VARCHAR ( 256 ) NOT NULL, \
-    project_id UUID, \
+    project_id UUID NOT NULL, \
     created_at TIMESTAMPTZ NOT NULL, \
     chain_id BIGINT NOT NULL, \
     provider_url VARCHAR ( 256 ) NOT NULL, \
