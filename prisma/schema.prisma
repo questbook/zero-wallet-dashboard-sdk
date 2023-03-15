@@ -1,0 +1,64 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource test {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model ContractsWhitelist {
+  contractsWhitelistId BigInt  @id @default(autoincrement()) @map("contracts_whitelist_id")
+  address              String  @test.VarChar(70)
+  gasTankId            BigInt  @map("gas_tank_id")
+  gasTank              GasTank @relation(fields: [gasTankId], references: [gasTankId], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([gasTankId, address])
+  @@index([address], map: "contracts_whitelist_index", type: Hash)
+  @@map("contracts_whitelist")
+}
+
+model GasTank {
+  gasTankId          BigInt               @id @default(autoincrement()) @map("gas_tank_id")
+  apiKey             String               @map("api_key") @test.VarChar(256)
+  projectId          String               @map("project_id") @test.Uuid
+  createdAt          DateTime             @map("created_at") @test.Timestamptz(6)
+  chainId            BigInt               @map("chain_id")
+  providerUrl        String               @map("provider_url") @test.VarChar(256)
+  fundingKey         BigInt               @map("funding_key")
+  contractsWhitelist ContractsWhitelist[]
+  project            Project              @relation(fields: [projectId], references: [projectId], onDelete: Cascade, onUpdate: NoAction)
+  gaslessLogins      GaslessLogin[]
+
+  @@unique([projectId, chainId])
+  @@index([projectId], map: "gas_tanks_index", type: Hash)
+  @@map("gas_tanks")
+}
+
+model GaslessLogin {
+  gaslessLoginId BigInt  @id @default(autoincrement()) @map("gasless_login_id")
+  address        String  @test.VarChar(70)
+  nonce          String  @test.VarChar(256)
+  expiration     BigInt
+  gasTankId      BigInt  @map("gas_tank_id")
+  gasTank        GasTank @relation(fields: [gasTankId], references: [gasTankId], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([gasTankId, address])
+  @@index([address], map: "gasless_login_index", type: Hash)
+  @@map("gasless_login")
+}
+
+model Project {
+  projectId      String    @id @map("project_id") @default(uuid()) @test.Uuid
+  projectApiKey  String    @map("project_api_key") @default(uuid()) @test.Uuid
+  name           String    @test.VarChar(256)
+  createdAt      DateTime  @map("created_at") @test.Timestamptz(6)
+  ownerScw       String    @map("owner_scw") @test.VarChar(70)
+  allowedOrigins String[]  @map("allowed_origins") @test.VarChar(256)
+  gasTanks       GasTank[]
+
+  @@unique([projectApiKey])
+  @@unique([ownerScw, name])
+  @@index([projectApiKey], map: "projects_index", type: Hash)
+  @@map("projects")
+}
